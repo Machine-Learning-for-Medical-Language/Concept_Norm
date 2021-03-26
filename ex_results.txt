@@ -1,0 +1,76 @@
+Semantic Type Tagger
+Training: 12 epoch, batch_size = 16
+'loss': 0.0431
+
+eval_loss = 0.5027561783790588
+f1 = 0.6577424023154849 (micro f1)
+
+                                       precision    recall  f1-score   support
+
+                 Acquired_Abnormality       0.22      0.67      0.33         3
+               Anatomical_Abnormality       0.10      1.00      0.18         1
+                           Antibiotic       0.77      0.87      0.82        23
+                            Bacterium       0.12      0.50      0.20         2
+                    Biologic_Function       0.00      0.00      0.00         0
+        Biologically_Active_Substance       0.00      0.00      0.00         0
+        Biomedical_or_Dental_Material       0.00      0.00      0.00         0
+              Body_Location_or_Region       0.30      0.38      0.33         8
+ Body_Part,_Organ,_or_Organ_Component       0.30      0.21      0.25        56
+               Body_Space_or_Junction       0.00      0.00      0.00         0
+                       Body_Substance       0.00      0.00      0.00         1
+                          Body_System       0.00      0.00      0.00         0
+                             CUI_less       0.37      0.24      0.29        42
+        Cell_or_Molecular_Dysfunction       0.00      0.00      0.00         0
+                   Clinical_Attribute       0.25      0.29      0.27         7
+                        Clinical_Drug       0.50      0.25      0.33         8
+               Congenital_Abnormality       0.00      0.00      0.00         0
+                 Diagnostic_Procedure       0.81      0.80      0.81       107
+                  Disease_or_Syndrome       0.76      0.70      0.73       175
+                              Finding       0.45      0.43      0.44       104
+                   Functional_Concept       0.21      0.50      0.30         6
+                               Fungus       0.00      0.00      0.00         0
+                 Health_Care_Activity       0.73      0.65      0.68        62
+Indicator,_Reagent,_or_Diagnostic_Aid       0.00      0.00      0.00         0
+                  Individual_Behavior       0.00      0.00      0.00         0
+                  Injury_or_Poisoning       0.42      0.42      0.42        12
+                 Intellectual_Product       0.00      0.00      0.00         0
+                 Laboratory_Procedure       0.93      0.90      0.91       158
+            Laboratory_or_Test_Result       0.00      0.00      0.00         7
+                       Medical_Device       0.62      0.47      0.53        17
+                       Mental_Process       0.00      0.00      0.00         0
+     Mental_or_Behavioral_Dysfunction       0.12      1.00      0.22         1
+                   Neoplastic_Process       0.62      0.62      0.62         8
+             Organ_or_Tissue_Function       0.11      0.10      0.11        10
+                     Organic_Chemical       0.00      0.00      0.00         0
+                    Organism_Function       0.00      0.00      0.00         0
+                  Pathologic_Function       0.62      0.44      0.52        75
+              Pharmacologic_Substance       0.97      0.91      0.94       142
+                Phenomenon_or_Process       0.00      0.00      0.00         0
+                 Physiologic_Function       0.00      0.00      0.00         0
+   Professional_or_Occupational_Group       0.00      0.00      0.00         0
+                  Qualitative_Concept       0.68      0.52      0.59        77
+                 Quantitative_Concept       0.56      0.70      0.62        27
+                      Sign_or_Symptom       0.78      0.70      0.74        83
+                      Social_Behavior       0.00      0.00      0.00         0
+                      Spatial_Concept       0.54      0.42      0.47        50
+                            Substance       0.00      0.00      0.00         0
+                     Temporal_Concept       0.57      0.57      0.57        23
+  Therapeutic_or_Preventive_Procedure       0.73      0.70      0.72       121
+
+                            micro avg       0.67      0.64      0.66      1416
+                            macro avg       0.29      0.33      0.28      1416
+                         weighted avg       0.70      0.64      0.66      1416
+
+
+
+F1 score of finding entities: 0.9276955602536998
+
+Counter({'O': 7086, 'E': 2367})
+
+Confusion matrix for entities and non_entities
+[[2194  173]
+ [ 169 6917]]
+
+ 
+
+
