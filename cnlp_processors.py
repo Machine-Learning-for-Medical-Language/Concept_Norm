@@ -118,12 +118,15 @@ class CnlpProcessor(DataProcessor):
             if test_mode:
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
-
-                text_a = '\t'.join(line[1:])
-                if sequence:
-                    label = line[0].split(' ')
+                if len(line)>1:
+                    text_a = '\t'.join(line[1:])
+                    if sequence:
+                        label = line[0].split(' ')
+                    else:
+                        label = line[0]
                 else:
-                    label = line[0]
+                    text_a = '\t'.join(line[:1])
+                    label = None
             else:
                 if sequence:
                     label = line[0].split(' ')

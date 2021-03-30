@@ -267,10 +267,11 @@ def main():
                                     f"eval_results.txt")
     output_test_file = os.path.join(training_args.output_dir,
                                     f"test_results.txt")
-    batches_per_epoch = math.ceil(
-        len(train_dataset) / training_args.train_batch_size)
-    total_steps = int(training_args.num_train_epochs * batches_per_epoch //
-                      training_args.gradient_accumulation_steps)
+    if training_args.do_train:
+        batches_per_epoch = math.ceil(
+            len(train_dataset) / training_args.train_batch_size)
+        total_steps = int(training_args.num_train_epochs * batches_per_epoch //
+                          training_args.gradient_accumulation_steps)
 
     if training_args.evals_per_epoch > 0:
         logger.warning(
@@ -382,21 +383,21 @@ def main():
         eval_results.update(eval_result)
 
     if training_args.do_predict:
-
-        predictions_eval, labels_eval, metrics_eval = trainer.predict(
-            eval_dataset)
-        predictions_eval = np.argmax(predictions_eval[0], axis=2)
-        label_list_eval = eval_dataset.get_labels()[0]
-        true_predictions_eval = [[
-            label_list_eval[p] for (p, l) in zip(prediction, label)
-            if l != -100
-        ] for prediction, label in zip(predictions_eval, labels_eval)]
-        output_eval_predictions_file = os.path.join(training_args.output_dir,
-                                                    "eval_predictions.txt")
-        if trainer.is_world_process_zero():
-            with open(output_eval_predictions_file, "w") as writer:
-                for prediction in true_predictions_eval:
-                    writer.write(" ".join(prediction) + "\n")
+        if training_args.do_eval:
+            predictions_eval, labels_eval, metrics_eval = trainer.predict(
+                eval_dataset)
+            predictions_eval = np.argmax(predictions_eval[0], axis=2)
+            label_list_eval = eval_dataset.get_labels()[0]
+            true_predictions_eval = [[
+                label_list_eval[p] for (p, l) in zip(prediction, label)
+                if l != -100
+            ] for prediction, label in zip(predictions_eval, labels_eval)]
+            output_eval_predictions_file = os.path.join(
+                training_args.output_dir, "eval_predictions.txt")
+            if trainer.is_world_process_zero():
+                with open(output_eval_predictions_file, "w") as writer:
+                    for prediction in true_predictions_eval:
+                        writer.write(" ".join(prediction) + "\n")
 
         logging.info("*** Test ***")
         predictions, labels, metrics = trainer.predict(test_dataset)

@@ -106,7 +106,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     sentences = [sent.split(" ") for sent in sentences]
 
     for idx, sentence in enumerate(sentences):
-        if len(labels[idx]) != len(sentence):
+        if labels[idx] is not None and len(labels[idx]) != len(sentence):
             raise ValueError("Issues with the sentence split!")
 
     padding = "max_length" if pad_to_max_length else False
@@ -143,7 +143,8 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
             labels_new.append(label_ids)
         return labels_new
 
-    labels_new = tokenize_and_align_labels(labels)
+    if labels[0] is not None:
+        labels_new = tokenize_and_align_labels(labels)
 
     # This code has to solve the problem of properly setting labels for word pieces that do not actually need to be tagged.
 
@@ -167,10 +168,13 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         #         1) + [0] * (len(inputs['input_ids']) - event_end - 1)
         # else:
         #     inputs['event_tokens'] = [1] * len(inputs['input_ids'])
+        if labels[0] is not None:
+            feature = InputFeatures(**inputs, labels=labels_new[i])
+        else:
+            feature = InputFeatures(**inputs)
 
-        feature = InputFeatures(**inputs, labels=labels_new[i])
-
-        if len(inputs['input_ids']) != len(labels_new[i]):
+        if labels[0] is not None and len(inputs['input_ids']) != len(
+                labels_new[i]):
             raise ValueError("Issues with the sentence split!")
         features.append(feature)
 

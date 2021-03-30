@@ -102,7 +102,51 @@ def analyze_token_level_confusion(cui_file_path, gold_file_path, pre_file_path,
                      conf_matrix_all_new)
 
 
-analyze_token_level_confusion("data/n2c2/processed/raw/dev",
-                              "data/n2c2/processed/input/dev.tsv",
-                              "data/n2c2/models/eval_predictions.txt",
-                              "data/n2c2/results/")
+# analyze_token_level_confusion("data/n2c2/processed/raw/dev",
+#                               "data/n2c2/processed/input/dev.tsv",
+#                               "data/n2c2/models/eval_predictions.txt",
+#                               "data/n2c2/results/")
+
+
+def generate_output(gold_file_path, pre_file_path, output_path):
+    inputs = read.read_from_tsv(gold_file_path)
+    predictions = read.textfile2list(pre_file_path)
+
+    analysis_all = []
+
+    analysis_all.append(['input', 'prediction'])
+    notes_dir = ['note1.txt', 'note2.txt', 'note3.txt']
+    note_idx = 0
+
+    for input, prediction in zip(inputs, predictions):
+        tokens = input[1].split()
+
+        pred_labels = prediction.split()
+
+        if len(tokens) != len(pred_labels):
+            raise ValueError(
+                "The length of predictions and the input is not equal!")
+        # not_equal = False
+
+        for token, pred_label in zip(tokens, pred_labels):
+            if token != "EOS":
+                analysis_all.append([token, pred_label])
+
+        if token == "EOS":
+
+            analysis_all.append(
+                ["End of " + notes_dir[note_idx], "----------"])
+            analysis_all.append(["", ""])
+            analysis_all.append(["", ""])
+            note_idx += 1
+        else:
+            analysis_all.append(["<EOS>", "----"])
+
+    read.save_in_tsv(os.path.join(output_path, 'tagging_analysis.tsv'),
+                     analysis_all)
+
+
+generate_output(
+    "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/input/test.tsv",
+    "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/output/test_predictions.txt",
+    "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/results/")
