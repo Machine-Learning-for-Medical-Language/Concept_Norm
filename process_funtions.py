@@ -108,7 +108,9 @@ def match_token_span(text, tokens, spans, concepts):
     return tokens_new, spans_new
 
 
-def create_tagging_discontinuous(text, tokens, token_spans, concepts):
+def create_tagging_discontinuous(text, tokens, token_spans, concepts,
+                                 note_name):
+    note_name = note_name.replace(".txt", "")
     print(text, tokens, token_spans, concepts)
     print()
     # exceptions = [
@@ -148,7 +150,7 @@ def create_tagging_discontinuous(text, tokens, token_spans, concepts):
                               for item in text_spans]
                 concept_span_new += text_spans
                 concept_text_new += concept_text_split
-            elif text_single =="left-sided" and span_single == (56, 66) :
+            elif text_single == "left-sided" and span_single == (56, 66):
                 concept_text_new += ["left-", 'sided']
                 concept_span_new += [(56, 61), (61, 66)]
 
@@ -173,7 +175,7 @@ def create_tagging_discontinuous(text, tokens, token_spans, concepts):
                 if not isinstance(tokens[index_k], list):
                     tokens[index_k] = ""
             tokens[index_last] = [concept_id, concept_cui, concept_text_new]
-        elif len(concept_span_new) >=3:
+        elif len(concept_span_new) >= 3:
             token_to_concept = False
             for concept_span_new_single in concept_span_new[1:-1]:
                 index_k = token_spans.index(concept_span_new_single)
@@ -205,10 +207,10 @@ def create_tagging_discontinuous(text, tokens, token_spans, concepts):
             concept_tokens = token[2]
             token_new += concept_tokens
             tag_new.append("B_" + concept_id + "_" + concept_cui + "_" +
-                           " ".join(concept_tokens))
+                           " ".join(concept_tokens) + "+++" + note_name)
             for concept_token in concept_tokens[1:]:
                 tag_new.append("I_" + concept_id + "_" + concept_cui + "_" +
-                               " ".join(concept_tokens))
+                               " ".join(concept_tokens) + "+++" + note_name)
         elif len(token) > 0:
             token_new += [token]
             tag_new.append("O")
@@ -216,33 +218,57 @@ def create_tagging_discontinuous(text, tokens, token_spans, concepts):
     return token_new, tag_new
 
 
-def create_tagging(text, tokens, token_spans, concepts):
-    n_tokens = len(tokens)
+# def create_tagging(text, tokens, token_spans, concepts, note_name):
+#     n_tokens = len(tokens)
+#     note_name = note_name.replace(".txt", "")
 
-    if len(tokens) != len(token_spans):
-        raise ValueError("Number of tokens != Number of spans")
+#     if len(tokens) != len(token_spans):
+#         raise ValueError("Number of tokens != Number of spans")
 
-    tags = ["O"] * n_tokens
-    for concept in concepts:
-        concept_text = concept[0]
-        concept_cui = concept[1]
+#     tags = ["O"] * n_tokens
+#     for concept in concepts:
+#         concept_text = concept[0]
+#         concept_cui = concept[1]
 
-        concept_id = concept[0]
-        concept_span = concept[2][0]
-        concept_text = concept_id + "_" + concept_cui + "_" + " ".join(
-            concept[3])
-        tagged = False
-        for idx, span in enumerate(token_spans):
-            if span[0] == concept_span[0] and span[1] <= concept_span[1]:
-                tags[idx] = "B_" + concept_text
-                tagged = True
-            elif span[0] > concept_span[0] and span[1] <= concept_span[1]:
-                tags[idx] = "I_" + concept_text
-                tagged = True
-        if tagged is False:
-            raise ValueError("Number of tokens != Number of spans")
+#         concept_id = concept[0]
+#         concept_span = concept[2][0]
+#         concept_text = concept_id + "_" + concept_cui + "_" + " ".join(
+#             concept[3])
+#         tagged = False
+#         for idx, span in enumerate(token_spans):
+#             if span[0] == concept_span[0] and span[1] <= concept_span[1]:
+#                 tags[idx] = "B_" + concept_text + "+++" + note_name
+#                 tagged = True
+#             elif span[0] > concept_span[0] and span[1] <= concept_span[1]:
+#                 tags[idx] = "I_" + concept_text + "+++" + note_name
+#                 tagged = True
+#         if tagged is False:
+#             raise ValueError("Number of tokens != Number of spans")
 
-    # print(text, tokens, tags)
-    # print(concepts)
-    # print()
-    return tokens, tags
+#     # print(text, tokens, tags)
+#     # print(concepts)
+#     # print()
+#     return tokens, tags
+
+
+def get_st_cui(cui):
+    semantic_type = read.read_from_json(
+        "data/umls/cui_st_term_snomed_rxnorm_dict_all")
+    semantic_type['CUI-less'] = ['CUI_less']
+    cui_st_list = semantic_type[cui]
+    # elif "Pharmacologic Substance" in semantic_type[concepts[1]]:
+    # #     cui_st = ["Pharmacologic Substance"]
+    if len(cui_st_list) > 1:
+        if "Pharmacologic Substance" in cui_st_list:
+            cui_st = ["Pharmacologic Substance"]
+        elif "Antibiotic" in cui_st_list:
+            cui_st = ["Antibiotic"]
+        elif "Biologically Active Substance" in cui_st_list:
+            cui_st = ["Biologically Active Substance"]
+        elif "Manufactured Object" in cui_st_list:
+            cui_st = ["Manufactured Object"]
+        else:
+            cui_st = cui_st_list[:1]
+        return cui_st[0]
+    else:
+        return cui_st_list[0]

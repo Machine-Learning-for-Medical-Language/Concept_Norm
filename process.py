@@ -75,18 +75,22 @@ def build_dataset(file_dir_path, notedir, out_file_name):
 
             contain_discontinous = False
             for concept in concepts:
+                if concept[0] == "N055" and "0358" in note:
+                    print(1)
+
                 concept_span = concept[2]
                 if len(concept_span) >= 2:
                     contain_discontinous = True
                     break
 
-            if contain_discontinous is False:
-                tokens, tags = process.create_tagging(text, tokens,
-                                                      token_spans, concepts)
+            # if contain_discontinous is False:
+            #     tokens, tags = process.create_tagging(text, tokens,
+            #                                           token_spans, concepts,
+            #                                           note)
 
-            else:
-                tokens, tags = process.create_tagging_discontinuous(
-                    text, tokens, token_spans, concepts)
+            # else:
+            tokens, tags = process.create_tagging_discontinuous(
+                text, tokens, token_spans, concepts, note)
 
             # print(text, tokens, tags)
             # mention = concept[0]
@@ -95,7 +99,7 @@ def build_dataset(file_dir_path, notedir, out_file_name):
 
             # cui_st = semantic_type[cui]
             # if len(cui_st) > 1:
-            #     print(text, cui, mention, cui_st)
+            #     print(text, cui, mention, cnormui_st)
 
             ### todo: get the index for the concepts
             input.append([tokens, tags])
@@ -107,13 +111,13 @@ def build_dataset(file_dir_path, notedir, out_file_name):
 
 build_dataset("data/n2c2/train_dev/dev_file_list.txt",
               "data/n2c2/train_dev/train_note/",
-              out_file_name='data/n2c2/processed/raw/dev')
+              out_file_name='data/n2c2/processed/raw/dev_all')
 
 build_dataset("data/n2c2/train_dev/train_file_list.txt",
               "data/n2c2/train_dev/train_note/",
-              out_file_name='data/n2c2/processed/raw/train')
+              out_file_name='data/n2c2/processed/raw/train_all')
 
 ### Fixed to do for discontinuous mentions in test set
 build_dataset("data/n2c2/test/test_file_list.txt",
               "data/n2c2/test/test_note/",
-              out_file_name='data/n2c2/processed/raw/test')
+              out_file_name='data/n2c2/processed/raw/test_all')
