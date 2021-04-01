@@ -1,5 +1,8 @@
 import os
 
+import sklearn.metrics as metrics
+from sklearn.metrics import classification_report
+
 import process_funtions as process
 import read_files as read
 
@@ -39,6 +42,7 @@ def input_st_raw(cui_file_path, gold_file_path, pre_file_path, output_path):
     cui_inputs = read.read_from_json(cui_file_path)
     inputs = read.read_from_tsv(gold_file_path)
     predictions = read.textfile2list(pre_file_path)
+    pre_concept_info = {}
     for cui_input, input, prediction in zip(cui_inputs, inputs, predictions):
         cui_labels = cui_input[1]
         tokens = input[1].split()
@@ -61,26 +65,37 @@ def input_st_raw(cui_file_path, gold_file_path, pre_file_path, output_path):
                 else:
                     pred_label = "None"
 
-                pre_concept_info = update_pre_concept_info(pre_concept_info,
-                                                        note_id, concept_id,
-                                                        concept, text, token,
-                                                        pred_label)
+                pre_concept_info = update_pre_concept_info(
+                    pre_concept_info, note_id, concept_id, concept, text,
+                    token, pred_label)
 
     read.save_in_json(output_path, pre_concept_info)
 
 
-input_st_raw("data/n2c2/processed/raw/dev_all",
-             "data/n2c2/processed/input_new/dev.tsv",
-             "data/n2c2/models/0330_12/eval_predictions.txt",
-             "data/n2c2/processed/input_st/raw/dev")
+# input_st_raw("data/n2c2/processed/raw/dev",
+#              "data/n2c2/processed/input/dev.tsv",
+#              "data/n2c2/models/0330_b32_e20/eval_predictions.txt",
+#              "data/n2c2/processed/input_st/raw/dev")
 
 
-def process_input_query(file_dir_path, norm_path, raw_input_st_dir):
+def process_input_query(file_dir_path, norm_path, raw_input_st_dir,
+                        output_dir):
 
     file_names = read.textfile2list(file_dir_path)
     norm_file_names = [item + ".norm" for item in file_names]
 
     raw_input_st_info = read.read_from_json(raw_input_st_dir)
+
+    semantic_type = read.read_from_json(
+        "data/umls/cui_st_term_snomed_rxnorm_dict_all")
+    semantic_type['CUI-less'] = ['CUI_less']
+
+    semantic_type_pre = []
+    semantic_type_pre_list = []
+    semantic_type_gold = []
+
+    input_query_dev = []
+    dev_norm = []
 
     for file_name in file_names:
         conceptlist = process.load_concept(
@@ -93,14 +108,38 @@ def process_input_query(file_dir_path, norm_path, raw_input_st_dir):
             mention = list(
                 set(raw_input_st_info[file_name][concept_info[0]]
                     ["gold_text"]))
-            pre_st = list(
-                set(raw_input_st_info[file_name][concept_info[0]]["pre_st"]))
-            print(file_name, concept_info[0], token, mention, gold_cui,
-                  process.get_st_cui(gold_cui[0]), pre_st)
+            pre_st = raw_input_st_info[file_name][concept_info[0]]["pre_st"]
+            # print(file_name, concept_info[0], token, mention, gold_cui,
+            #       process.get_st_cui(gold_cui[0]), pre_st)
+            semantic_type_pre_list.append(pre_st)
+            semantic_type_pre.append(pre_st[-1])
+            semantic_type_gold.append(
+                process.get_st_cui(semantic_type, gold_cui[0]))
+
+            # print(file_name, concept_info[0], token, mention, gold_cui,
+            #       process.get_st_cui(semantic_type,gold_cui[0]), pre_st)
+
             if len(mention) > 1 or mention[0] != token or len(gold_cui) > 1:
                 raise ValueError("mention texts is more than one.")
 
+            input_query_dev.append([token + " [SEP] " + pre_st[-1]])
+            dev_norm.append(gold_cui[0])
 
-# process_input_query("data/n2c2/train_dev/dev_file_list.txt",
-#                     "data/n2c2/train_dev/train_norm/",
-#                     "data/n2c2/processed/input_st/raw/dev")
+    labels = list(set(semantic_type_gold + semantic_type_pre))
+
+    process.raw_accuracy_score(semantic_type_gold, semantic_type_pre_list)
+
+    read.save_in_tsv(os.path.join(output_dir, "dev_query.tsv"),
+                     input_query_dev)
+    read.save_in_json(os.path.join(output_dir, "dev_norm"), dev_norm)
+
+    # print(
+    #     classification_report(semantic_type_gold,
+    #                           semantic_type_pre,
+    #                           target_names=labels))
+
+
+process_input_query("data/n2c2/train_dev/dev_file_list.txt",
+                    "data/n2c2/train_dev/train_norm/",
+                    "data/n2c2/processed/input_st/raw/dev",
+                    "data/n2c2/processed/input_st/triplet/data/")

@@ -231,7 +231,7 @@ def create_tagging_discontinuous(text, tokens, token_spans, concepts,
 #         concept_cui = concept[1]
 
 #         concept_id = concept[0]
-#         concept_span = concept[2][0]
+#         concept_span = concept[2][0]metrics_eval
 #         concept_text = concept_id + "_" + concept_cui + "_" + " ".join(
 #             concept[3])
 #         tagged = False
@@ -251,10 +251,8 @@ def create_tagging_discontinuous(text, tokens, token_spans, concepts,
 #     return tokens, tags
 
 
-def get_st_cui(cui):
-    semantic_type = read.read_from_json(
-        "data/umls/cui_st_term_snomed_rxnorm_dict_all")
-    semantic_type['CUI-less'] = ['CUI_less']
+def get_st_cui(semantic_type, cui):
+
     cui_st_list = semantic_type[cui]
     # elif "Pharmacologic Substance" in semantic_type[concepts[1]]:
     # #     cui_st = ["Pharmacologic Substance"]
@@ -272,3 +270,12 @@ def get_st_cui(cui):
         return cui_st[0]
     else:
         return cui_st_list[0]
+
+
+def raw_accuracy_score(gold_labels, pre_labels):
+    count = len(gold_labels)
+    label_in = 0
+    for gold_label, pre_label in zip(gold_labels ,pre_labels):
+        if gold_label in pre_label:
+            label_in +=1
+    print(label_in/count)

@@ -324,13 +324,22 @@ def main():
                     if trainer.is_world_process_zero():
                         tokenizer.save_pretrained(training_args.output_dir)
                         for task_ind, task_name in enumerate(metrics):
-                            with open(output_eval_file, "w") as writer:
-                                logger.info(
-                                    "***** Eval results for task %s *****" %
-                                    (task_name))
-                                for key, value in metrics[task_name].items():
+                            # with open(output_eval_file, "w") as writer:
+                            logger.info(
+                                "***** Eval results for task %s *****" %
+                                (task_name))
+                            for key, value in metrics[task_name].items():
+                                if key == "eval_ner_test" and isinstance(
+                                        value, dict):
+                                    for key_key, key_value in value.items():
+                                        logger.info("  %s = %s", key_key,
+                                                    key_value)
+                                        # writer.write("%s = %s\n" %
+                                        #              (key_key, key_value))
+                                else:
                                     logger.info("  %s = %s", key, value)
-                                    writer.write("%s = %s\n" % (key, value))
+                                    # writer.write("%s = %s\n" %
+                                    #              (key, value))
                     model.best_score = one_score
                     model.best_eval_results = metrics
 
@@ -377,8 +386,13 @@ def main():
             with open(output_eval_file, "w") as writer:
                 logger.info("***** Eval results *****")
                 for key, value in eval_result.items():
-                    logger.info("  %s = %s", key, value)
-                    writer.write("%s = %s\n" % (key, value))
+                    if key == "eval_ner_test" and isinstance(value, dict):
+                        for key_key, key_value in value.items():
+                            logger.info("  %s = %s", key_key, key_value)
+                            writer.write("%s = %s\n" % (key_key, key_value))
+                    else:
+                        logger.info("  %s = %s", key, value)
+                        writer.write("%s = %s\n" % (key, value))
 
         eval_results.update(eval_result)
 
@@ -412,8 +426,13 @@ def main():
             with open(output_test_file, "w") as writer:
                 logger.info("***** test results *****")
                 for key, value in metrics.items():
-                    logger.info("  %s = %s", key, value)
-                    writer.write("%s = %s\n" % (key, value))
+                    if key == "eval_ner_test" and isinstance(value, dict):
+                        for key_key, key_value in value.items():
+                            logger.info("  %s = %s", key_key, key_value)
+                            writer.write("%s = %s\n" % (key_key, key_value))
+                    else:
+                        logger.info("  %s = %s", key, value)
+                        writer.write("%s = %s\n" % (key, value))
 
         # Save predictions
         output_test_predictions_file = os.path.join(training_args.output_dir,

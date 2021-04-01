@@ -111,13 +111,13 @@ def build_dataset(file_dir_path, notedir, out_file_name):
 
 build_dataset("data/n2c2/train_dev/dev_file_list.txt",
               "data/n2c2/train_dev/train_note/",
-              out_file_name='data/n2c2/processed/raw/dev_all')
+              out_file_name='data/n2c2/processed/raw/dev')
 
 build_dataset("data/n2c2/train_dev/train_file_list.txt",
               "data/n2c2/train_dev/train_note/",
-              out_file_name='data/n2c2/processed/raw/train_all')
+              out_file_name='data/n2c2/processed/raw/train')
 
 ### Fixed to do for discontinuous mentions in test set
 build_dataset("data/n2c2/test/test_file_list.txt",
               "data/n2c2/test/test_note/",
-              out_file_name='data/n2c2/processed/raw/test_all')
+              out_file_name='data/n2c2/processed/raw/test')

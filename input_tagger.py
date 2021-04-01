@@ -33,11 +33,11 @@ def generate_st_input(file_path, output_path):
     read.save_in_tsv(output_path, input_new)
 
 
-generate_st_input("data/n2c2/processed/raw/train_all",
-                  "data/n2c2/processed/input_new/train.tsv")
+generate_st_input("data/n2c2/processed/raw/train",
+                  "data/n2c2/processed/input/train.tsv")
 
-generate_st_input("data/n2c2/processed/raw/dev_all",
-                  "data/n2c2/processed/input_new/dev.tsv")
+generate_st_input("data/n2c2/processed/raw/dev",
+                  "data/n2c2/processed/input/dev.tsv")
 
-generate_st_input("data/n2c2/processed/raw/test_all",
-                  "data/n2c2/processed/input_new/test.tsv")
+generate_st_input("data/n2c2/processed/raw/test",
+                  "data/n2c2/processed/input/test.tsv")

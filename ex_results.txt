@@ -63,7 +63,7 @@ Indicator,_Reagent,_or_Diagnostic_Aid       0.00      0.00      0.00         0
 
 
 
-F1 score of finding entities: 0.9276955602536998
+F1 score of finding tokens belonging to the biomedical entities: 0.9276955602536998
 
 Counter({'O': 7086, 'E': 2367})
 
@@ -71,6 +71,67 @@ Confusion matrix for entities and non_entities
 [[2194  173]
  [ 169 6917]]
 
- 
+
+Entity level F1 score (based on the known span)
+#1 Taking the semantic type of the first token of the mention: 0.7185185185185186
+#2 Taking the semantic type of the last token of the mention: 0.731111111111111
+#4 Taking the semantic type of any tokens of the mention: 0.7466666666666667
+
+                                       precision    recall  f1-score   support
+
+                               Fungus       0.75      0.67      0.71         9
+              Pharmacologic Substance       1.00      0.10      0.18        10
+                                 None       0.90      0.73      0.81        26
+                Phenomenon or Process       0.40      0.25      0.31         8
+                            Bacterium       0.00      0.00      0.00         1
+        Cell or Molecular Dysfunction       0.00      0.00      0.00         2
+     Mental or Behavioral Dysfunction       0.00      0.00      0.00         1
+ Body Part, Organ, or Organ Component       1.00      0.40      0.57        10
+             Organ or Tissue Function       0.51      0.47      0.49        40
+                     Temporal Concept       0.00      0.00      0.00         1
+                      Spatial Concept       0.00      0.00      0.00         3
+                   Functional Concept       0.00      0.00      0.00         0
+                      Sign or Symptom       0.00      0.00      0.00        27
+                 Intellectual Product       0.00      0.00      0.00         1
+        Biologically Active Substance       0.33      0.38      0.35         8
+                      Social Behavior       0.22      0.50      0.31         4
+              Body Location or Region       0.00      0.00      0.00         2
+                 Health Care Activity       0.87      0.84      0.86       106
+                       Mental Process       0.81      0.81      0.81       162
+  Therapeutic or Preventive Procedure       0.53      0.61      0.57       101
+                 Quantitative Concept       0.25      0.14      0.18        14
+                 Diagnostic Procedure       0.00      0.00      0.00         1
+                   Neoplastic Process       0.68      0.76      0.72        55
+                  Individual Behavior       0.00      0.00      0.00         1
+                        Clinical Drug       0.00      0.00      0.00         1
+   Professional or Occupational Group       0.75      1.00      0.86        12
+Indicator, Reagent, or Diagnostic Aid       0.00      0.00      0.00         1
+                  Pathologic Function       0.97      0.96      0.96       153
+                             CUI less       0.11      0.17      0.13         6
+                              Finding       0.65      0.85      0.73        13
+                           Antibiotic       0.00      0.00      0.00         1
+                    Organism Function       0.67      0.25      0.36         8
+               Anatomical Abnormality       1.00      0.88      0.93         8
+               Congenital Abnormality       0.00      0.00      0.00         0
+        Biomedical or Dental Material       0.40      0.22      0.29         9
+            Laboratory or Test Result       0.00      0.00      0.00         4
+                 Laboratory Procedure       0.00      0.00      0.00         3
+                 Physiologic Function       0.54      0.70      0.61        53
+               Body Space or Junction       0.90      0.98      0.94       133
+                            Substance       0.00      0.00      0.00         1
+                  Qualitative Concept       0.00      0.00      0.00         1
+                       Medical Device       0.00      0.00      0.00         1
+                  Disease or Syndrome       0.89      0.71      0.79        59
+                   Clinical Attribute       1.00      0.59      0.74        34
+                          Body System       0.88      0.88      0.88        74
+                     Organic Chemical       0.00      0.00      0.00         2
+                             CUI_less       0.79      0.59      0.68        39
+                 Acquired Abnormality       0.00      0.00      0.00         1
+                    Biologic Function       0.78      0.61      0.68        23
+                  Injury or Poisoning       0.88      0.79      0.83       117
+
+                             accuracy                           0.73      1350
+                            macro avg       0.39      0.34      0.35      1350
+                         weighted avg       0.76      0.73      0.74      1350
 
 
