@@ -272,10 +272,18 @@ def get_st_cui(semantic_type, cui):
         return cui_st_list[0]
 
 
+def get_sg_cui(semantic_group, cui):
+
+    cui_st_list = semantic_group[cui]
+    # elif "Pharmacologic Substance" in semantic_type[concepts[1]]:
+    # #     cui_st = ["Pharmacologic Substance"]
+    return cui_st_list[0]
+
+
 def raw_accuracy_score(gold_labels, pre_labels):
     count = len(gold_labels)
     label_in = 0
-    for gold_label, pre_label in zip(gold_labels ,pre_labels):
+    for gold_label, pre_label in zip(gold_labels, pre_labels):
         if gold_label in pre_label:
-            label_in +=1
-    print(label_in/count)
+            label_in += 1
+    print(label_in / count)

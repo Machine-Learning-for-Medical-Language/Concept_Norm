@@ -102,10 +102,11 @@ def analyze_token_level_confusion(cui_file_path, gold_file_path, pre_file_path,
                      conf_matrix_all_new)
 
 
-# analyze_token_level_confusion("data/n2c2/processed/raw/dev",
-#                               "data/n2c2/processed/input/dev.tsv",
-#                               "data/n2c2/models/eval_predictions.txt",
-#                               "data/n2c2/results/")
+analyze_token_level_confusion(
+    "data/n2c2/processed/raw/dev",
+    "data/n2c2/processed/input_tagger/sg/dev.tsv",
+    "data/n2c2/models/sg_0401_b32_e20/eval_predictions.txt",
+    "data/n2c2/results/sg/")
 
 
 def generate_output(gold_file_path, pre_file_path, output_path):
@@ -146,7 +147,7 @@ def generate_output(gold_file_path, pre_file_path, output_path):
                      analysis_all)
 
 
-generate_output(
-    "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/input/test.tsv",
-    "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/output/test_predictions.txt",
-    "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/results/")
+# generate_output(
+#     "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/input/test.tsv",
+#     "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/output/test_predictions.txt",
+#     "/home/dongfangxu/Projects/Concept_Norm/data/covid_data/results/")

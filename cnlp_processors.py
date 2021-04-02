@@ -118,7 +118,7 @@ class CnlpProcessor(DataProcessor):
             if test_mode:
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
-                if len(line)>1:
+                if len(line) > 1:
                     text_a = '\t'.join(line[1:])
                     if sequence:
                         label = line[0].split(' ')
@@ -280,14 +280,34 @@ class NerProcessor(SequenceProcessor):
         #     'O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC',
         #     'B-MISC', 'I-MISC'
         # ]
-        import read_files as read
-        semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
 
-        semantic_type_label = [
-            item.split('|')[3] for item in semantic_type_label
+        ################### semantic types ############################
+        # import read_files as read
+        # semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
+
+        # semantic_type_label = [
+        #     item.split('|')[3] for item in semantic_type_label
+        # ]
+        # tagger_labels = []
+        # for label in semantic_type_label:
+        #     label_new = '_'.join(label.split(' '))
+        #     tagger_labels.append("B-" + label_new)
+        #     tagger_labels.append("I-" + label_new)
+        # tagger_labels.append('O')
+        # tagger_labels.append('B-CUI_less')
+        # tagger_labels.append('I-CUI_less')
+        # return tagger_labels
+
+        ################### semantic groups ############################
+        import read_files as read
+        semantic_group_label = read.textfile2list("data/umls/umls_st.txt")
+
+        semantic_group_label = [
+            item.split('|')[1] for item in semantic_group_label
         ]
+        semantic_group_label = list(set(semantic_group_label))
         tagger_labels = []
-        for label in semantic_type_label:
+        for label in semantic_group_label:
             label_new = '_'.join(label.split(' '))
             tagger_labels.append("B-" + label_new)
             tagger_labels.append("I-" + label_new)

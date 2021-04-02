@@ -75,7 +75,7 @@ Confusion matrix for entities and non_entities
 Entity level F1 score (based on the known span)
 #1 Taking the semantic type of the first token of the mention: 0.7185185185185186
 #2 Taking the semantic type of the last token of the mention: 0.731111111111111
-#4 Taking the semantic type of any tokens of the mention: 0.7466666666666667
+#3 Taking the semantic type of any tokens of the mention: 0.7466666666666667
 
                                        precision    recall  f1-score   support
 
@@ -135,3 +135,34 @@ Indicator, Reagent, or Diagnostic Aid       0.00      0.00      0.00         1
                          weighted avg       0.76      0.73      0.74      1350
 
 
+
+Semantic Group
+Counter({'O': 7086, 'E': 2372})
+0.9257311171891437
+
+Entity level F1 score (based on the known span)
+#1 Taking the semantic type of the first token of the mention: 0.8096296296296296
+#2 Taking the semantic type of the last token of the mention: 0.8296296296296296
+#3 Taking the semantic type of any tokens of the mention: 0.8429629629629629
+
+
+                        precision    recall  f1-score   support
+
+      Concepts & Ideas       0.00      0.00      0.00         3
+         Living Beings       0.63      0.57      0.60        54
+               Anatomy       0.00      0.00      0.00         0
+     Chemicals & Drugs       0.00      0.00      0.00        27
+             Disorders       0.96      0.97      0.97       171
+            Physiology       0.88      0.66      0.76       170
+            Procedures       0.71      0.77      0.74        13
+             Phenomena       0.88      0.88      0.88       440
+                  None       1.00      0.70      0.82        10
+              CUI_less       0.00      0.00      0.00         0
+Activities & Behaviors       0.00      0.00      0.00         1
+              CUI less       0.33      0.12      0.18         8
+               Devices       0.47      0.36      0.41        22
+               Objects       0.93      0.92      0.92       431
+
+              accuracy                           0.83      1350
+             macro avg       0.49      0.43      0.45      1350
+          weighted avg       0.86      0.83      0.84      1350
