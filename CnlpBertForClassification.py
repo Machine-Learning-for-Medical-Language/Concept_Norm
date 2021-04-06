@@ -47,7 +47,7 @@ class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dense = nn.Linear(config.hidden_size, config..hidden_size)
         self.activation = nn.Tanh()
         self.layer_to_use = layer
         self.tokens = tokens
@@ -161,27 +161,45 @@ class CnlpBertForClassification(BertPreTrainedModel):
             logits.append(task_logits)
 
             if labels is not None:
-                if task_num_labels == 1:
-                    #  We are doing regression
-                    loss_fct = MSELoss()
-                    task_loss = loss_fct(task_logits.view(-1), labels.view(-1))
-                else:
-                    loss_fct = CrossEntropyLoss()
-                    if len(self.num_labels) > 1:
-                        task_labels = labels[:, task_ind, :].squeeze()
-                    else:
-                        task_labels = labels
+                # if task_num_labels == 1:
+                #     #  We are doing regression
+                #     loss_fct = MSELoss()
+                #     task_loss = loss_fct(task_logits.view(-1), labels.view(-1))
+                # else:
+                #     loss_fct = CrossEntropyLoss()
+                #     if len(self.num_labels) > 1:
+                #         task_labels = labels[:, task_ind, :].squeeze()
+                #     else:
+                #         task_labels = labels
 
-                    # task_loss = loss_fct(
-                    #     task_logits.view(-1, task_num_labels),
-                    #     task_labels.reshape([
-                    #         batch_size * seq_len,
-                    #     ]).type(torch.LongTensor()).to(labels.device))
-                    labels_new = torch.tensor(task_labels,
-                                          dtype=torch.long,
-                                          device=labels.device)
+                #     # task_loss = loss_fct(
+                #     #     task_logits.view(-1, task_num_labels),
+                #     #     task_labels.reshape([
+                #     #         batch_size * seq_len,
+                #     #     ]).type(torch.LongTensor()).to(labels.device))
+                #     labels_new = task_labels.reshape([
+                #         batch_size * seq_len,
+                #     ])
+                #     labels_new = labels_new.type(torch.LongTensor()).to(
+                #         labels.device)
+                #     task_loss = loss_fct(task_logits.view(-1, task_num_labels),
+                #                          labels_new.view(-1))
+                loss_fct = CrossEntropyLoss()
+                # Only keep active parts of the loss
+                # if len(self.num_labels) > 1:
+                #     task_labels = labels[:, task_ind, :].squeeze()
+                # else:
+                #     task_labels = labels
+                if attention_mask is not None:
+                    active_loss = attention_mask.view(-1) == 1
+                    active_logits = task_logits.view(-1, task_num_labels)
+                    active_labels = torch.where(
+                        active_loss, labels.view(-1),
+                        torch.tensor(loss_fct.ignore_index).type_as(labels))
+                    task_loss = loss_fct(active_logits, active_labels)
+                else:
                     task_loss = loss_fct(task_logits.view(-1, task_num_labels),
-                                         labels_new.view(-1))
+                                         labels.view(-1))
 
                 if loss is None:
                     loss = task_loss

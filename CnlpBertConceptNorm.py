@@ -1,7 +1,9 @@
 import logging
 
+import numpy as np
 import torch
 from torch import nn
+from torch.autograd import Variable
 from torch.nn import CrossEntropyLoss, MSELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
 from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
@@ -81,6 +83,36 @@ class RepresentationProjectionLayer(nn.Module):
         return x
 
 
+import torch.nn.functional as F
+from torch.nn import Parameter
+
+
+class CosineLayer(nn.Module):
+    def __init__(self, weights_matrix):
+        super(CosineLayer, self).__init__()
+        self.weight = Parameter(torch.from_numpy(weights_matrix),
+                                requires_grad=False)
+        self.threshold = Parameter(torch.rand(1), requires_grad=True)
+
+    def forward(self, features):
+        eps = 1e-8
+        batch_size, fea_size = features.shape
+        input_norm, weight_norm = features.norm(
+            2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
+        input_norm = torch.div(
+            features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
+        weight_norm = torch.div(
+            self.weight,
+            torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
+        sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
+
+        cui_less_score = torch.full(
+            (batch_size, 1), 1).to(features.device) * self.threshold
+        similarity_score = torch.cat((sim_mt, cui_less_score), 1)
+
+        return similarity_score
+
+
 class CnlpBertForClassification(BertPreTrainedModel):
     config_class = BertConfig
     base_model_prefix = "bert"
@@ -91,37 +123,38 @@ class CnlpBertForClassification(BertPreTrainedModel):
                  layer=-1,
                  freeze=False,
                  tokens=False,
-                 tagger=False):
+                 tagger=False,
+                 freeze_embeddings=True):
+
         super().__init__(config)
         self.num_labels = num_labels_list
 
         self.bert = BertModel(config)
 
-        # weight = torch.FloatTensor()
-        # self.embedding = nn.Embedding.from_pretrained(weight)
-
-
         if freeze:
             for param in self.bert.parameters():
                 param.requires_grad = False
 
-        self.feature_extractors = nn.ModuleList()
+        weights_matrix = np.load(
+            "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
+        )
+
+        # self.linear = nn.Embedding(num_embeddings, embedding_dim)
+
+        self.feature_extractor = RepresentationProjectionLayer(
+            config, layer=layer, tokens=tokens, tagger=tagger[0])
+
         self.classifiers = nn.ModuleList()
 
-        for task_ind, task_num_labels in enumerate(num_labels_list):
-            self.feature_extractors.append(
-                RepresentationProjectionLayer(config,
-                                              layer=layer,
-                                              tokens=tokens,
-                                              tagger=tagger[task_ind]))
+        for task_ind, task_num_labels in enumerate(self.num_labels):
             self.classifiers.append(ClassificationHead(config,
                                                        task_num_labels))
 
-        # Are we operating as a sequence classifier (1 label per input sequence) or a tagger (1 label per input token in the sequence)
-        self.tagger = tagger
-
         self.init_weights()
 
+        self.cosine_similarity = CosineLayer(weights_matrix)
+
+        # Are we operating as a sconcepts_presentation
     def forward(
         self,
         input_ids=None,
@@ -130,10 +163,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
-        labels=None,
+        event_tokens=None,
+        st_labels=None,
+        concept_labels=None,
         output_attentions=None,
         output_hidden_states=None,
-        event_tokens=None,
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`, defaults to :obj:`None`):
@@ -142,7 +176,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
             If :obj:`config.num_labels == 1` a regression loss is computed (Mean-Square loss),
             If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
-
+        labels = [st_labels, concept_labels]
         outputs = self.bert(input_ids,
                             attention_mask=attention_mask,
                             token_type_ids=token_type_ids,
@@ -153,59 +187,66 @@ class CnlpBertForClassification(BertPreTrainedModel):
                             output_hidden_states=True,
                             return_dict=True)
 
-        concept_embeddings = self.embedding(concept_ids)
-        
-
         batch_size, seq_len = input_ids.shape
 
         logits = []
 
         loss = None
+
+        features = self.feature_extractor(outputs.hidden_states, event_tokens)
+
         for task_ind, task_num_labels in enumerate(self.num_labels):
-            features = self.feature_extractors[task_ind](outputs.hidden_states,
-                                                         event_tokens)
-            task_logits = self.classifiers[task_ind](features)
+            if task_ind == 0:
+                task_logits = self.classifiers[task_ind](features)
+            else:
+                task_logits = self.cosine_similarity(features)
             logits.append(task_logits)
 
-            if labels is not None:
-                if task_num_labels == 1:
-                    #  We are doing regression
-                    loss_fct = MSELoss()
-                    task_loss = loss_fct(task_logits.view(-1), labels.view(-1))
-                else:
-                    loss_fct = CrossEntropyLoss()
-                    if len(self.num_labels) > 1:
-                        task_labels = labels[:, task_ind, :].squeeze()
-                    else:
-                        task_labels = labels
+            if labels[task_ind] is not None:
+                loss_fct = CrossEntropyLoss()
+                task_logits_new = task_logits.view(-1,
+                                                   self.num_labels[task_ind])
+                labels_new = labels[task_ind].view(-1)
 
-                    # task_loss = loss_fct(
-                    #     task_logits.view(-1, task_num_labels),
-                    #     task_labels.reshape([
-                    #         batch_size * seq_len,
-                    #     ]).type(torch.LongTensor()).to(labels.device))
-                    labels_new = torch.tensor(task_labels,
-                                          dtype=torch.long,
-                                          device=labels.device)
-                    task_loss = loss_fct(task_logits.view(-1, task_num_labels),
-                                         labels_new.view(-1))
+                task_loss = loss_fct(task_logits_new, labels_new)
 
                 if loss is None:
                     loss = task_loss
                 else:
                     loss += task_loss
 
+        #### semantic type classifier ####
 
-#         if not return_dict:
-#             output = (logits,) + outputs[2:]
-#             return ((loss,) + output) if loss is not None else output
+        # if labels is not None:
+        #     loss_fct1 = CrossEntropyLoss()
+        # task_loss1 = loss_fct1(task_logits1.view(-1, self.num_labels[0]),
+        #                        st_labels.view(-1))
+        # if loss is None:
+        #     loss = task_loss1
+        # else:
+        #     loss += task_loss1
+
+        ### Concept representation layer ####
+
+        # task_logits = self.cosine_similarity(features)
+
+        # if concept_labels is not None:
+
+        # loss_fct2 = CosineEmbeddingLoss()
+        # task_loss2 = loss_fct2(
+        #     features, concepts_presentation,
+        #     torch.Tensor(features.size(0)).cuda().fill_(1.0))
+        # if loss is None:
+        #     loss = task_loss2
+        # else:
+        #     loss += task_loss2
 
         if self.training:
             return SequenceClassifierOutput(
                 loss=loss,
-                logits=logits,
+                logits=logits[1],
                 hidden_states=outputs.hidden_states,
                 attentions=outputs.attentions,
             )
         else:
-            return SequenceClassifierOutput(loss=loss, logits=logits)
+            return SequenceClassifierOutput(logits=logits[1])

@@ -117,7 +117,6 @@ build_dataset("data/n2c2/train_dev/train_file_list.txt",
               "data/n2c2/train_dev/train_note/",
               out_file_name='data/n2c2/processed/raw/train')
 
-### Fixed to do for discontinuous mentions in test set
 build_dataset("data/n2c2/test/test_file_list.txt",
               "data/n2c2/test/test_note/",
               out_file_name='data/n2c2/processed/raw/test')
