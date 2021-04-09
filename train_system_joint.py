@@ -32,7 +32,7 @@ import torch
 from filelock import FileLock
 from torch.utils.data.dataset import Dataset
 from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig, AutoModelForSequenceClassification, \
-    AutoTokenizer, DataCollatorWithPadding, EvalPrediction, HfArgumentParser, TrainingArguments, set_seed
+    AutoTokenizer, DataCollatorWithPadding, EvalPrediction, HfArgumentParser, Trainer, TrainingArguments, set_seed
 from transformers.data.metrics import acc_and_f1
 from transformers.data.processors.utils import DataProcessor, InputExample, InputFeatures
 from transformers.tokenization_utils import BatchEncoding, PreTrainedTokenizer
@@ -41,7 +41,6 @@ from transformers.training_args import EvaluationStrategy
 from cnlp_data_Bert_conceptnorm import ClinicalNlpDataset, DataTrainingArguments
 from cnlp_processors import cnlp_compute_metrics, cnlp_output_modes, cnlp_processors, tagging
 from CnlpBertConceptNorm import CnlpBertForClassification
-from trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +118,15 @@ class CnlpTrainingArguments(TrainingArguments):
         },
     )
 
+    learning_rate: float = field(
+        default=5e-5,
+        metadata={
+            "help":
+            "The learning rate of the optimizer"
+
+        },
+    )
+
     num_train_epochs: int = field(
         default=5,
         metadata={
@@ -127,6 +135,9 @@ class CnlpTrainingArguments(TrainingArguments):
             "than this will be truncated, sequences shorter will be padded."
         },
     )
+    label_names: List[str] = field(
+        default_factory=lambda: None,
+        metadata={"help": "A space-separated list of labels"})
 
 
 @dataclass
@@ -361,7 +372,7 @@ def main():
                 if len(task_names) == 1:
                     labels = p.label_ids
                 else:
-                    labels = p.label_ids[:, task_ind, :].squeeze()
+                    labels = p.label_ids[task_ind]
 
                 metrics[task_name] = cnlp_compute_metrics(
                     task_name, preds, labels)
@@ -454,49 +465,59 @@ def main():
 
     if training_args.do_predict:
         if training_args.do_eval:
-            predictions_eval, labels_eval, metrics_eval = trainer.predict(
+            predictions_tasks_eval, labels_tasks_eval, metrics_tasks_eval = trainer.predict(
                 eval_dataset)
-            predictions_eval = np.argmax(predictions_eval[0], axis=2)
-            label_list_eval = eval_dataset.get_labels()[0]
-            true_predictions_eval = [[
-                label_list_eval[p] for (p, l) in zip(prediction, label)
-                if l != -100
-            ] for prediction, label in zip(predictions_eval, labels_eval)]
-            output_eval_predictions_file = os.path.join(
-                training_args.output_dir, "eval_predictions.txt")
+
+            for task_ind, task_name in enumerate(data_args.task_name):
+                predictions_task_eval = np.argmax(
+                    predictions_tasks_eval[task_ind], axis=-1)
+                label_list_eval = cnlp_processors[task_name]().get_labels()
+                true_predictions_eval = [
+                    label_list_eval[prediction] for prediction, label in zip(
+                        predictions_task_eval, labels_tasks_eval[task_ind])
+                    if label != -100
+                ]
+                output_eval_predictions_file = os.path.join(
+                    training_args.output_dir,
+                    "%s_eval_predictions.txt" % task_name)
+                if trainer.is_world_process_zero():
+                    with open(output_eval_predictions_file, "w") as writer:
+                        for prediction in true_predictions_eval:
+                            writer.write("".join(prediction) + "\n")
+
+        ########################## Test Predictions #######################
+        predictions_tasks, labels_tasks, metrics_tasks = trainer.predict(
+            test_dataset)
+        for task_ind, task_name in enumerate(data_args.task_name):
+            predictions_task = np.argmax(predictions_tasks[task_ind], axis=-1)
+            label_list = cnlp_processors[task_name]().get_labels()
+            # Remove ignored index (special tokens)
+            true_predictions = [
+                label_list[prediction] for prediction, label in zip(
+                    predictions_task, labels_tasks[task_ind]) if label != -100
+            ]
             if trainer.is_world_process_zero():
-                with open(output_eval_predictions_file, "w") as writer:
-                    for prediction in true_predictions_eval:
+                with open(output_test_file, "w") as writer:
+                    logger.info("***** Test results for task %s *****" %
+                                (task_name))
+                    for key, value in metrics_tasks[task_ind].items():
+                        if key == "eval_ner_test" and isinstance(value, dict):
+                            for key_key, key_value in value.items():
+                                logger.info("  %s = %s", key_key, key_value)
+                                writer.write("%s = %s\n" %
+                                             (key_key, key_value))
+                        else:
+                            logger.info("  %s = %s", key, value)
+                            writer.write("%s = %s\n" % (key, value))
+
+            # Save predictions
+            output_test_predictions_file = os.path.join(
+                training_args.output_dir,
+                "%s_test_predictions.txt" % (task_name))
+            if trainer.is_world_process_zero():
+                with open(output_test_predictions_file, "w") as writer:
+                    for prediction in true_predictions:
                         writer.write(" ".join(prediction) + "\n")
-
-        logging.info("*** Test ***")
-        predictions, labels, metrics = trainer.predict(test_dataset)
-        predictions = np.argmax(predictions[0], axis=2)
-        label_list = test_dataset.get_labels()[0]
-        # Remove ignored index (special tokens)
-        true_predictions = [[
-            label_list[p] for (p, l) in zip(prediction, label) if l != -100
-        ] for prediction, label in zip(predictions, labels)]
-
-        if trainer.is_world_process_zero():
-            with open(output_test_file, "w") as writer:
-                logger.info("***** test results *****")
-                for key, value in metrics.items():
-                    if key == "eval_ner_test" and isinstance(value, dict):
-                        for key_key, key_value in value.items():
-                            logger.info("  %s = %s", key_key, key_value)
-                            writer.write("%s = %s\n" % (key_key, key_value))
-                    else:
-                        logger.info("  %s = %s", key, value)
-                        writer.write("%s = %s\n" % (key, value))
-
-        # Save predictions
-        output_test_predictions_file = os.path.join(training_args.output_dir,
-                                                    "test_predictions.txt")
-        if trainer.is_world_process_zero():
-            with open(output_test_predictions_file, "w") as writer:
-                for prediction in true_predictions:
-                    writer.write(" ".join(prediction) + "\n")
     return eval_results
 
 

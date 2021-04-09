@@ -166,3 +166,20 @@ Activities & Behaviors       0.00      0.00      0.00         1
               accuracy                           0.83      1350
              macro avg       0.49      0.43      0.45      1350
           weighted avg       0.86      0.83      0.84      1350
+
+
+
+Semantic type (ST) classification: 127 categories
+Sign_or_Symptom	C0149651	"Warm to touch , no <e> clubbing </e> , cyanosis , or edema ."
+ST Classifier: accuracy/micro F1 81.875
+
+Concept normalization: ~434,056 Concepts
+Classifier: accuracy/micro-F1 77.5
+
+Joint Training of semantic type classifier and concept normalization.
+ST Classifier: accuracy/micro-F1 84.25
+Concept Normalization: 72.25
+
+
+
+

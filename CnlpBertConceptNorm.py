@@ -92,7 +92,7 @@ class CosineLayer(nn.Module):
         super(CosineLayer, self).__init__()
         self.weight = Parameter(torch.from_numpy(weights_matrix),
                                 requires_grad=False)
-        self.threshold = Parameter(torch.rand(1), requires_grad=True)
+        self.threshold = Parameter(0.5 * torch.rand(1), requires_grad=True)
 
     def forward(self, features):
         eps = 1e-8
@@ -111,6 +111,21 @@ class CosineLayer(nn.Module):
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
 
         return similarity_score
+
+
+class AddMarginProduct(nn.Module):
+    def __init__(self, s=30.0, m=0.40):
+        super(AddMarginProduct, self).__init__()
+
+        self.s = s
+        self.m = m
+
+    def forward(self, cosine_score, labels):
+        phi = cosine_score - self.m
+        one_hot = torch.zeros(cosine_score.size()).to(cosine_score.device)
+        one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
+        output = (one_hot * phi) + ((1.0 - one_hot) * cosine_score)
+        output *= self.s
 
 
 class CnlpBertForClassification(BertPreTrainedModel):
@@ -133,7 +148,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         if freeze:
             for param in self.bert.parameters():
-                param.requires_grad = False
+                param.requires_grad = True
 
         weights_matrix = np.load(
             "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
@@ -144,11 +159,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor = RepresentationProjectionLayer(
             config, layer=layer, tokens=tokens, tagger=tagger[0])
 
-        self.classifiers = nn.ModuleList()
+        # self.classifier = ClassificationHead(config, self.num_labels[0])
 
-        for task_ind, task_num_labels in enumerate(self.num_labels):
-            self.classifiers.append(ClassificationHead(config,
-                                                       task_num_labels))
+        # for task_ind, task_num_labels in enumerate(self.num_labels):
+        #     self.classifiers.append(ClassificationHead(config,
+        #                                                task_num_labels))
 
         self.init_weights()
 
@@ -196,10 +211,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
         features = self.feature_extractor(outputs.hidden_states, event_tokens)
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
-            if task_ind == 0:
-                task_logits = self.classifiers[task_ind](features)
-            else:
-                task_logits = self.cosine_similarity(features)
+            # if task_ind == 1:
+            #     task_logits = self.classifier(features)
+            # else:
+            task_logits = self.cosine_similarity(features)
             logits.append(task_logits)
 
             if labels[task_ind] is not None:
@@ -244,9 +259,9 @@ class CnlpBertForClassification(BertPreTrainedModel):
         if self.training:
             return SequenceClassifierOutput(
                 loss=loss,
-                logits=logits[1],
+                logits=logits,
                 hidden_states=outputs.hidden_states,
                 attentions=outputs.attentions,
             )
         else:
-            return SequenceClassifierOutput(logits=logits[1])
+            return SequenceClassifierOutput(loss=loss, logits=logits)

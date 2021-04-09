@@ -80,7 +80,11 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     #                     (output_mode, task))
 
     st_label_map = {label: i for i, label in enumerate(label_lists[0])}
-    concept_label_map = {label: i for i, label in enumerate(label_lists[1])}
+    if len(label_lists) > 1:
+        concept_label_map = {
+            label: i
+            for i, label in enumerate(label_lists[1])
+        }
 
     def label_from_example(example: InputExample, label_map: dict,
                            idx: int) -> Union[int, float, None]:
@@ -101,12 +105,13 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         raise KeyError(output_mode)
 
     labels_st = [
-        label_from_example(example, st_label_map, 0) for example in examples
+        label_from_example(example, st_label_map, 1) for example in examples
     ]
-    labels_concept = [
-        label_from_example(example, concept_label_map, 1)
-        for example in examples
-    ]
+    if len(label_lists) > 1:
+        labels_concept = [
+            label_from_example(example, concept_label_map, 1)
+            for example in examples
+        ]
 
     if examples[0].text_b is None:
         sentences = [example.text_a for example in examples]
@@ -154,10 +159,13 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
                 1) + [0] * (len(inputs['input_ids']) - event_end - 1)
         else:
             inputs['event_tokens'] = [1] * len(inputs['input_ids'])
-        if labels_concept[0] is not None:
-            feature = InputFeatures(**inputs,
-                                    st_labels=labels_st[i],
-                                    concept_labels=labels_concept[i])
+        if labels_st[0] is not None:
+            if len(label_lists) > 1:
+                feature = InputFeatures(**inputs,
+                                        st_labels=labels_st[i],
+                                        concept_labels=labels_concept[i])
+            else:
+                feature = InputFeatures(**inputs, st_labels=labels_st[i])
         else:
             feature = InputFeatures(**inputs)
 

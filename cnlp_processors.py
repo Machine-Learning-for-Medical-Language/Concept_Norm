@@ -47,7 +47,7 @@ def tagging_metrics(task_name, preds, labels):
 
 def acc_and_f1(preds, labels):
     acc = simple_accuracy(preds, labels)
-    f1 = f1_score(y_true=labels, y_pred=preds, average=None)
+    f1 = f1_score(y_true=labels, y_pred=preds, average='micro')
     return {
         "acc": acc,
         "f1": f1,
@@ -368,21 +368,29 @@ class StJointProcessor(CnlpProcessor):
     def get_one_score(self, results):
         return results['f1']
 
+    # def get_labels(self):
+    #     import read_files as read
+    #     semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
+
+    #     semantic_type_label = [
+    #         item.split('|')[3] for item in semantic_type_label
+    #     ]
+    #     st_labels = []
+    #     for label in semantic_type_label:
+    #         label_new = '_'.join(label.split(' '))
+    #         st_labels.append(label_new)
+
+    #     st_labels.append('CUI_less')
+
+    #     return st_labels
+
     def get_labels(self):
         import read_files as read
-        semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
-
-        semantic_type_label = [
-            item.split('|')[3] for item in semantic_type_label
-        ]
-        st_labels = []
-        for label in semantic_type_label:
-            label_new = '_'.join(label.split(' '))
-            st_labels.append(label_new)
-
-        st_labels.append('CUI_less')
-
-        return st_labels
+        concept_labels = read.read_from_json(
+            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+                'CUI-less'
+            ]
+        return concept_labels
 
 
 class CnJointProcessor(LabeledSentenceProcessor):
@@ -394,6 +402,9 @@ class CnJointProcessor(LabeledSentenceProcessor):
                 'CUI-less'
             ]
         return concept_labels
+
+    def get_one_score(self, results):
+        return results['f1']
 
 
 cnlp_processors = {
