@@ -182,4 +182,21 @@ Concept Normalization: 72.25
 
 
 
+# remove the dense layer
+
+acc 0.7859259259259259 cuiless 0.37037037037037035
+seen 0.963882618510158 unseen 0.45080091533180777 unseen gold truth but seen pred 0.23569794050343248
+st 0.8716417910447761
+
+# change the loss function to arcface
+acc 0.8192592592592592 cuiless 0.37037037037037035
+seen 0.9571106094808126 unseen 0.5675057208237986 unseen gold truth but seen pred 0.18077803203661327
+st 0.891044776119403
+
+# Using the model from triplet-network to initialize the models
+acc 0.8407407407407408 cuiless 0.37037037037037035
+seen 0.9616252821670429 unseen 0.6247139588100686 unseen gold truth but seen pred 0.16933638443935928
+st 0.8932835820895523
+
+
 

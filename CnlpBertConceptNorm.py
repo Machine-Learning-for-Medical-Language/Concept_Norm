@@ -1,4 +1,5 @@
 import logging
+import math
 
 import numpy as np
 import torch
@@ -77,9 +78,9 @@ class RepresentationProjectionLayer(nn.Module):
         else:
             # take <s> token (equiv. to [CLS])
             x = features[self.layer_to_use][:, 0, :]
-        x = self.dropout(x)
-        x = self.dense(x)
-        x = self.activation(x)
+        # x = self.dropout(x)
+        # x = self.dense(x)
+        # x = self.activation(x)
         return x
 
 
@@ -113,19 +114,32 @@ class CosineLayer(nn.Module):
         return similarity_score
 
 
-class AddMarginProduct(nn.Module):
-    def __init__(self, s=30.0, m=0.40):
-        super(AddMarginProduct, self).__init__()
+class ArcMarginProduct(nn.Module):
+    def __init__(self, s=30.0, m=0.55, easy_margin=False):
+        super(ArcMarginProduct, self).__init__()
 
         self.s = s
         self.m = m
+        self.easy_margin = easy_margin
+        self.cos_m = math.cos(m)
+        self.sin_m = math.sin(m)
+        self.th = math.cos(math.pi - m)
+        self.mm = math.sin(math.pi - m) * m
 
     def forward(self, cosine_score, labels):
-        phi = cosine_score - self.m
+        sine = torch.sqrt((1.0 - torch.pow(cosine_score, 2)).clamp(0, 1))
+        phi = cosine_score * self.cos_m - sine * self.sin_m
+        # if self.easy_margin:
+        #     phi = torch.where(cosine_score > 0, phi, cosine_score)
+        # else:
+        #     phi = torch.where(cosine_score > self.th, phi,
+        #                       cosine_score - self.mm)
+
         one_hot = torch.zeros(cosine_score.size()).to(cosine_score.device)
         one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine_score)
         output *= self.s
+        return output
 
 
 class CnlpBertForClassification(BertPreTrainedModel):
@@ -159,11 +173,16 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor = RepresentationProjectionLayer(
             config, layer=layer, tokens=tokens, tagger=tagger[0])
 
+        # self.feature_extractor_mention = RepresentationProjectionLayer(
+        #     config, layer=layer, tokens=tokens, tagger=tagger[0])
+
         # self.classifier = ClassificationHead(config, self.num_labels[0])
 
         # for task_ind, task_num_labels in enumerate(self.num_labels):
         #     self.classifiers.append(ClassificationHead(config,
         #                                                task_num_labels))
+
+        self.arcface = ArcMarginProduct(easy_margin=True)
 
         self.init_weights()
 
@@ -176,9 +195,14 @@ class CnlpBertForClassification(BertPreTrainedModel):
         attention_mask=None,
         token_type_ids=None,
         position_ids=None,
+        # input_ids_m=None,
+        # attention_mask_m=None,
+        # token_type_ids_m=None,
+        # position_ids_m=None,
         head_mask=None,
         inputs_embeds=None,
         event_tokens=None,
+        # event_tokens_m=None,
         st_labels=None,
         concept_labels=None,
         output_attentions=None,
@@ -202,6 +226,16 @@ class CnlpBertForClassification(BertPreTrainedModel):
                             output_hidden_states=True,
                             return_dict=True)
 
+        # outputs_mention = self.bert(input_ids_m,
+        #                             attention_mask=attention_mask_m,
+        #                             token_type_ids=token_type_ids_m,
+        #                             position_ids=position_ids_m,
+        #                             head_mask=head_mask,
+        #                             inputs_embeds=inputs_embeds,
+        #                             output_attentions=output_attentions,
+        #                             output_hidden_states=True,
+        #                             return_dict=True)
+
         batch_size, seq_len = input_ids.shape
 
         logits = []
@@ -209,12 +243,23 @@ class CnlpBertForClassification(BertPreTrainedModel):
         loss = None
 
         features = self.feature_extractor(outputs.hidden_states, event_tokens)
+        # features_mention = self.feature_extractor_mention(
+        #     outputs_mention.hidden_states, event_tokens_m)
+        # features = 0.5 * features + 0.5 *features_mention
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
             # if task_ind == 1:
             #     task_logits = self.classifier(features)
             # else:
-            task_logits = self.cosine_similarity(features)
+            task_logits_intermediate = self.cosine_similarity(features)
+            task_logits_output = self.arcface(task_logits_intermediate,
+                                              labels[task_ind])
+            if self.training:
+                task_logits = task_logits_output
+
+            else:
+                task_logits = task_logits_intermediate
+
             logits.append(task_logits)
 
             if labels[task_ind] is not None:

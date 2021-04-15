@@ -39,16 +39,38 @@ def generate_st_input(file_path, output_path):
                     entity_text.append('</e>')
                     sentence = tokens[:idx] + entity_text + tokens[idx +
                                                                    entity_idx:]
+                    # input_new.append(
+                    #     [st, cui, " ".join(entity_text), " ".join(sentence)])
+
                     input_new.append([st, cui, " ".join(sentence)])
 
-    read.save_in_tsv(output_path, input_new)
+    read.save_in_tsv(output_path, input_new[:1000])
 
 
 # generate_st_input("data/n2c2/processed/raw/train",
-#                   "data/n2c2/processed/input_joint/st_copy/train.tsv")
+#                   "data/n2c2/processed/input_joint/st_copy_combine/train_sep.tsv")
 
-generate_st_input("data/n2c2/processed/raw/dev",
-                  "data/n2c2/processed/input_joint/st_eval/dev.tsv")
+# generate_st_input("data/n2c2/processed/raw/dev",
+#                   "data/n2c2/processed/input_joint/st_copy_combine/dev_sep.tsv")
 
-generate_st_input("data/n2c2/processed/raw/test",
-                  "data/n2c2/processed/input_joint/st_eval/test.tsv")
+# generate_st_input("data/n2c2/processed/raw/dev",
+#                   "data/n2c2/processed/input_joint_mention/st_eval/dev.tsv")
+
+# generate_st_input("data/n2c2/processed/raw/test",
+#                   "data/n2c2/processed/input_joint/st_copy_combine/dev.tsv")
+
+
+def combine_train_dev():
+    train = read.read_from_tsv(
+        "data/n2c2/processed/input_joint/st_copy_combine/train_sep.tsv")
+
+    dev = read.read_from_tsv(
+        "data/n2c2/processed/input_joint/st_copy_combine/dev_sep.tsv")
+
+    train_new = train + dev
+
+    read.save_in_tsv(
+        "data/n2c2/processed/input_joint/st_copy_combine/train.tsv", train_new)
+
+
+# combine_train_dev()

@@ -320,6 +320,51 @@ class NerProcessor(SequenceProcessor):
 
 
 class StJointProcessor(CnlpProcessor):
+    # def _create_examples(self, lines, set_type, sequence=False):
+    #     test_mode = set_type == "test"
+    #     examples = []
+    #     for (i, line) in enumerate(lines):
+    #         guid = "%s-%s" % (set_type, i)
+    #         if test_mode:
+    #             # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
+    #             # we know which part of the line has the data.
+    #             if len(line) > 1:
+    #                 text_a = '\t'.join(line[2:])
+    #                 if sequence:
+    #                     st = line[0].split(' ')
+    #                     concept = line[1]
+
+    #                 else:
+    #                     st = line[0]
+    #                     concept = line[1]
+    #                 label = st + "+++" + concept
+    #             else:
+    #                 text_a = '\t'.join(line[:1])
+    #                 label = None
+    #         else:
+    #             if sequence:
+    #                 st = line[0].split(' ')
+    #                 concept = line[1]
+    #             else:
+    #                 st = line[0]
+    #                 concept = line[1]
+    #             label = st + "+++" + concept
+    #             text_a = '\t'.join(line[2:])
+
+    #         if set_type == 'train' and not sequence and label in self.downsampling:
+    #             dart = random.random()
+    #             # if downsampling is set to 0.1 then sample 10% of those instances.
+    #             # so if our randomly generated number is bigger than our downsampling rate
+    #             # we skip this instance.
+    #             if dart > self.downsampling[label]:
+    #                 continue
+    #         examples.append(
+    #             InputExample(guid=guid,
+    #                          text_a=text_a,
+    #                          text_b=None,
+    #                          label=label))
+    #     return examples
+
     def _create_examples(self, lines, set_type, sequence=False):
         test_mode = set_type == "test"
         examples = []
@@ -328,7 +373,8 @@ class StJointProcessor(CnlpProcessor):
             if test_mode:
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
-                if len(line) > 1:
+                if len(line) > 2:
+                    # text_b = line[2]
                     text_a = '\t'.join(line[2:])
                     if sequence:
                         st = line[0].split(' ')
@@ -350,6 +396,7 @@ class StJointProcessor(CnlpProcessor):
                     concept = line[1]
                 label = st + "+++" + concept
                 text_a = '\t'.join(line[2:])
+                # text_b = line[2]
 
             if set_type == 'train' and not sequence and label in self.downsampling:
                 dart = random.random()
