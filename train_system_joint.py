@@ -460,31 +460,31 @@ def main():
         eval_results.update(eval_result)
 
     if training_args.do_predict:
-        if training_args.do_eval:
-            predictions_tasks_eval, labels_tasks_eval, metrics_tasks_eval = trainer.predict(
-                eval_dataset)
+        # if training_args.do_eval:
+        #     predictions_tasks_eval, labels_tasks_eval, metrics_tasks_eval = trainer.predict(
+        #         eval_dataset)
 
-            for task_ind, task_name in enumerate(data_args.task_name):
-                predictions_task_eval = np.argmax(
-                    predictions_tasks_eval[task_ind], axis=-1)
-                label_list_eval = cnlp_processors[task_name]().get_labels()
-                # true_predictions_eval = [
-                #     label_list_eval[prediction] for prediction, label in zip(
-                #         predictions_task_eval, labels_tasks_eval[task_ind])
-                #     if label != -100
-                # ]
-                true_predictions_eval = [
-                    label_list_eval[prediction] for prediction, label in zip(
-                        predictions_task_eval, labels_tasks_eval)
-                    if label != -100
-                ]
-                output_eval_predictions_file = os.path.join(
-                    training_args.output_dir,
-                    "%s_eval_predictions.txt" % task_name)
-                if trainer.is_world_process_zero():
-                    with open(output_eval_predictions_file, "w") as writer:
-                        for prediction in true_predictions_eval:
-                            writer.write("".join(prediction) + "\n")
+        #     for task_ind, task_name in enumerate(data_args.task_name):
+        #         predictions_task_eval = np.argmax(
+        #             predictions_tasks_eval[task_ind], axis=-1)
+        #         label_list_eval = cnlp_processors[task_name]().get_labels()
+        #         # true_predictions_eval = [
+        #         #     label_list_eval[prediction] for prediction, label in zip(
+        #         #         predictions_task_eval, labels_tasks_eval[task_ind])
+        #         #     if label != -100
+        #         # ]
+        #         true_predictions_eval = [
+        #             label_list_eval[prediction] for prediction, label in zip(
+        #                 predictions_task_eval, labels_tasks_eval)
+        #             if label != -100
+        #         ]
+        #         output_eval_predictions_file = os.path.join(
+        #             training_args.output_dir,
+        #             "%s_eval_predictions.txt" % task_name)
+        #         if trainer.is_world_process_zero():
+        #             with open(output_eval_predictions_file, "w") as writer:
+        #                 for prediction in true_predictions_eval:
+        #                     writer.write("".join(prediction) + "\n")
 
         ########################## Test Predictions #######################
         predictions_tasks, labels_tasks, metrics_tasks = trainer.predict(
@@ -519,7 +519,7 @@ def main():
             if trainer.is_world_process_zero():
                 with open(output_test_predictions_file, "w") as writer:
                     for prediction in true_predictions:
-                        writer.write(" ".join(prediction) + "\n")
+                        writer.write("".join(prediction) + "\n")
     return eval_results
 
 
