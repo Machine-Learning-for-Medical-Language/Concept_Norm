@@ -364,7 +364,6 @@ class StJointProcessor(CnlpProcessor):
     #                          text_b=None,
     #                          label=label))
     #     return examples
-
     def _create_examples(self, lines, set_type, sequence=False):
         test_mode = set_type == "test"
         examples = []

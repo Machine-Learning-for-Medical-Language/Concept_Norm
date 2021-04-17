@@ -181,22 +181,32 @@ ST Classifier: accuracy/micro-F1 84.25
 Concept Normalization: 72.25
 
 
+# Tune loss weights for joint training,
+# Add mentions as input
+# Change the encoder to clinicalBERT
 
 # remove the dense layer
 
 acc 0.7859259259259259 cuiless 0.37037037037037035
-seen 0.963882618510158 unseen 0.45080091533180777 unseen gold truth but seen pred 0.23569794050343248
+seen 0.963882618510158 unseen 0.45080091533180777 incorrect unseen but the pred is seen  0.23569794050343248
 st 0.8716417910447761
 
 # change the loss function to arcface
 acc 0.8192592592592592 cuiless 0.37037037037037035
-seen 0.9571106094808126 unseen 0.5675057208237986 unseen gold truth but seen pred 0.18077803203661327
+seen 0.9571106094808126 unseen 0.5675057208237986 incorrect unseen but the pred is seen 0.18077803203661327
 st 0.891044776119403
 
 # Using the model from triplet-network to initialize the models
-acc 0.8407407407407408 cuiless 0.37037037037037035
-seen 0.9616252821670429 unseen 0.6247139588100686 unseen gold truth but seen pred 0.16933638443935928
-st 0.8932835820895523
+
+dev
+acc 0.8518518518518519 cuiless 0.37037037037037035
+seen 0.9650112866817155 unseen 0.6521739130434783 incorrect unseen but the pred is seen 0.14874141876430205
+st 0.9014925373134328
+
+test
+acc 0.8170784568703945 cuiless 0.47465437788018433
+seen 0.9480898876404494 unseen 0.5913930789707187 incorrect unseen but the pred is seen 0.14906832298136646
+st 0.8825168671164565
 
 
 

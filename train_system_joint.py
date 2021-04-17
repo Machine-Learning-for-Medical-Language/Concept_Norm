@@ -180,6 +180,10 @@ class ModelArguments:
             "help":
             "Freeze the encoder layers and only train the layer between the encoder and classification architecture. Probably works best with --token flag since [CLS] may not be well-trained for anything in particular."
         })
+    scale: float = field(
+        default=30.0, metadata={"help": "scale value used for the arcface."})
+    margin: float = field(
+        default=0.5, metadata={"help": "margin value used for the arcface."})
 
 
 def main():
@@ -294,6 +298,8 @@ def main():
         model_name,
         config=config,
         num_labels_list=num_labels,
+        scale=model_args.scale,
+        margin=model_args.margin,
         cache_dir=model_args.cache_dir,
         layer=model_args.layer,
         tokens=model_args.token,

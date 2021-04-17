@@ -115,7 +115,7 @@ class CosineLayer(nn.Module):
 
 
 class ArcMarginProduct(nn.Module):
-    def __init__(self, s=30.0, m=0.55, easy_margin=False):
+    def __init__(self, s, m, easy_margin=False):
         super(ArcMarginProduct, self).__init__()
 
         self.s = s
@@ -149,6 +149,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
     def __init__(self,
                  config,
                  num_labels_list,
+                 scale,
+                 margin,
                  layer=-1,
                  freeze=False,
                  tokens=False,
@@ -182,7 +184,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         #     self.classifiers.append(ClassificationHead(config,
         #                                                task_num_labels))
 
-        self.arcface = ArcMarginProduct(easy_margin=True)
+        self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
 
         self.init_weights()
 

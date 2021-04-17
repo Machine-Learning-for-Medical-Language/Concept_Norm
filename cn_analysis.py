@@ -9,7 +9,7 @@ import process_funtions as process
 import read_files as read
 
 
-def analyze_cn(cui_file_path, input_file_path):
+def analyze_cn(dev, cui_file_path, input_file_path):
 
     semantic_type = read.read_from_json(
         "data/umls/cui_st_term_snomed_rxnorm_dict_all")
@@ -19,15 +19,26 @@ def analyze_cn(cui_file_path, input_file_path):
         "data/umls/cui_synonyms_snomed_rxnorm_dict_all")
     cui_synonyms['CUI-less'] = ['CUI_less']
 
-    train_input = read.read_from_tsv(
-        "data/n2c2/processed/input_joint/st/train.tsv")
+    if dev == True:
+        train_input = read.read_from_tsv(
+            "data/n2c2/processed/input_joint/st/train.tsv")
+    else:
+        train_input = read.read_from_tsv(
+            "data/n2c2/processed/input_joint/st/train.tsv")
+        # ) + read.read_from_tsv("data/n2c2/processed/input_joint/st/dev.tsv")
 
     train_cui = {}
     for item in train_input:
         train_cui = read.add_dict(train_cui, item[1], item[2])
     # train_cui = [item[1] for item in train_input]
 
-    dev_pre = read.textfile2list(cui_file_path)
+    if dev == True:
+        dev_pre = read.textfile2list(cui_file_path)
+    else:
+        dev_pre = read.textfile2list(
+            cui_file_path +
+            "1_st_joint_test_predictions.txt") + read.textfile2list(
+                cui_file_path + "2_st_joint_test_predictions.txt")
     dev_input = read.read_from_tsv(input_file_path)
 
     count_st = 0
@@ -106,14 +117,14 @@ def analyze_cn(cui_file_path, input_file_path):
                 else:
                     if pre_cui in train_cui:
                         count_unsee_pre_seen += 1
-                        # print("special notification......")
-                        # print(train_cui[pre_cui])
+                    #     print("special notification......")
+                    #     print(train_cui[pre_cui])
 
                     # print(cui, st, mention)
                     # print()
-                    # print(cui_synonyms[cui])
+                    # print(list(set(cui_synonyms[cui])))
                     # print()
-                    # print(pre_cui, st_pre, cui_synonyms[pre_cui])
+                    # print(pre_cui, st_pre, list(set(cui_synonyms[pre_cui])))
                     # print()
                     # print()
                     # print()
@@ -135,6 +146,10 @@ def analyze_cn(cui_file_path, input_file_path):
     print("st", count_st / (count_all - count_cuiless))
 
 
-cui_file_path = "data/n2c2/models/context_e50_s128_output/st_joint_eval_predictions.txt"
-input_file_path = "data/n2c2/processed/input_joint/st_eval/dev.tsv"
-analyze_cn(cui_file_path, input_file_path)
+cui_file_path = "data/n2c2/models/e20_b16_s128_5e5/st_joint_eval_predictions.txt"
+input_file_path = "data/n2c2/processed/input_joint/st/dev.tsv"
+analyze_cn(True, cui_file_path, input_file_path)
+
+cui_file_path = "data/n2c2/models/e20_b16_s128_5e5/"
+input_file_path = "data/n2c2/processed/input_joint/st/test.tsv"
+analyze_cn(False, cui_file_path, input_file_path)
