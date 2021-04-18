@@ -166,7 +166,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 param.requires_grad = True
 
         weights_matrix = np.load(
-            "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
+            "data/n2c2/triplet_network/st_subpool/ontology+train_con_embeddings.npy"
         )
 
         # self.linear = nn.Embedding(num_embeddings, embedding_dim)
