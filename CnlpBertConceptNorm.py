@@ -49,9 +49,9 @@ class ClassificationHead(nn.Module):
 class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.activation = nn.Tanh()
+        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        # self.activation = nn.Tanh()
         self.layer_to_use = layer
         self.tokens = tokens
         self.tagger = tagger
@@ -93,7 +93,7 @@ class CosineLayer(nn.Module):
         super(CosineLayer, self).__init__()
         self.weight = Parameter(torch.from_numpy(weights_matrix),
                                 requires_grad=False)
-        self.threshold = Parameter(0.5 * torch.rand(1), requires_grad=True)
+        self.threshold = Parameter( torch.rand(1), requires_grad=True)
 
     def forward(self, features):
         eps = 1e-8
@@ -148,14 +148,13 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
     def __init__(self,
                  config,
-                 num_labels_list,
-                 scale,
-                 margin,
+                 num_labels_list=[1],
+                 scale=20,
+                 margin=0.5,
                  layer=-1,
                  freeze=False,
-                 tokens=False,
-                 tagger=False,
-                 freeze_embeddings=True):
+                 tokens=True,
+                 tagger=[False]):
 
         super().__init__(config)
         self.num_labels = num_labels_list
@@ -254,9 +253,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
             #     task_logits = self.classifier(features)
             # else:
             task_logits_intermediate = self.cosine_similarity(features)
-            task_logits_output = self.arcface(task_logits_intermediate,
-                                              labels[task_ind])
+
             if self.training:
+                task_logits_output = self.arcface(task_logits_intermediate,
+                                                  labels[task_ind])
                 task_logits = task_logits_output
 
             else:
@@ -266,11 +266,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
             if labels[task_ind] is not None:
                 loss_fct = CrossEntropyLoss()
-                task_logits_new = task_logits.view(-1,
-                                                   self.num_labels[task_ind])
+                # task_logits_new = task_logits.view(-1,
+                #                                    self.num_labels[task_ind])
                 labels_new = labels[task_ind].view(-1)
 
-                task_loss = loss_fct(task_logits_new, labels_new)
+                task_loss = loss_fct(task_logits, labels_new)
 
                 if loss is None:
                     loss = task_loss

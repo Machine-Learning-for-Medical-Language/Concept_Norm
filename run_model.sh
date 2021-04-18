@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=chip-gpu             # queue to be used
 #SBATCH --account=chip
-#SBATCH --time=2:00:00             # Running time (in hours-minutes-seconds)
+#SBATCH --time=3:00:00             # Running time (in hours-minutes-seconds)
 #SBATCH --job-name=conorm             # Job name
 #SBATCH --mail-type=BEGIN,END,FAIL      # send and email when the job begins, ends or fails
 #SBATCH --mail-user=dongfang.xu@childrens.harvard.edu      # Email address to send the job status
@@ -30,4 +30,8 @@ singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-pyt
 --max_seq_length 128 \
 --token true \
 --label_names st_labels \
---pad_to_max_length true
+--pad_to_max_length true \
+--learning_rate 5e-5
+--margin 1.0 \
+--scale 30 \
+--evals_per_epoch 1

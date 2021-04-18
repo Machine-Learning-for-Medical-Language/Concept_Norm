@@ -44,17 +44,17 @@ def generate_st_input(file_path, output_path):
 
                     input_new.append([st, cui, " ".join(sentence)])
 
-    read.save_in_tsv(output_path, input_new[4800:])
+    read.save_in_tsv(output_path, input_new)
 
 
-# generate_st_input("data/n2c2/processed/raw/train",
-#                   "data/n2c2/processed/input_joint/st_all/train.tsv")
+generate_st_input("data/n2c2/processed/raw/train",
+                  "data/n2c2/processed/input_joint/st/train.tsv")
 
-# generate_st_input("data/n2c2/processed/raw/dev",
-#                   "data/n2c2/processed/input_joint/st_all/dev.tsv")
+generate_st_input("data/n2c2/processed/raw/dev",
+                  "data/n2c2/processed/input_joint/st/dev.tsv")
 
 generate_st_input("data/n2c2/processed/raw/test",
-                  "data/n2c2/processed/input_joint/st_all_rest/test.tsv")
+                  "data/n2c2/processed/input_joint/st/test.tsv")
 
 # generate_st_input("data/n2c2/processed/raw/dev",
 #                   "data/n2c2/processed/input_joint_mention/st_eval/dev.tsv")

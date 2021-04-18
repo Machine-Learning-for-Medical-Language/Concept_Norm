@@ -36,7 +36,7 @@ from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig, AutoMode
 from transformers.data.metrics import acc_and_f1
 from transformers.data.processors.utils import DataProcessor, InputExample, InputFeatures
 from transformers.tokenization_utils import BatchEncoding, PreTrainedTokenizer
-from transformers.training_args import EvaluationStrategy
+from transformers.training_args import EvaluationStrategy, IntervalStrategy
 
 from cnlp_data_Bert_conceptnorm import ClinicalNlpDataset, DataTrainingArguments
 from cnlp_processors import cnlp_compute_metrics, cnlp_output_modes, cnlp_processors, tagging
@@ -134,6 +134,28 @@ class CnlpTrainingArguments(TrainingArguments):
     label_names: List[str] = field(
         default_factory=lambda: None,
         metadata={"help": "A space-separated list of labels"})
+
+    eval_accumulation_steps: Optional[int] = field(
+        default=100,
+        metadata={
+            "help":
+            "Number of predictions steps to accumulate before moving the tensors to the CPU."
+        },
+    )
+
+    load_best_model_at_end: Optional[bool] = field(
+        default=True,
+        metadata={
+            "help":
+            "Whether or not to load the best model found during training at the end of training."
+        },
+    )
+
+    # metric_for_best_model: Optional[str] = field(
+    #     default="acc",
+    #     metadata={
+    #         "help": "The metric to use to compare two different models."
+    #     })
 
 
 @dataclass
@@ -349,7 +371,8 @@ def main():
         # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
         steps_per_epoch = int(total_steps // training_args.num_train_epochs)
         training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
-        training_args.evaluation_strategy = EvaluationStrategy.STEPS
+        training_args.evaluation_strategy = IntervalStrategy.EPOCH
+        training_args.save_strategy = IntervalStrategy.EPOCH
     elif training_args.do_eval:
         logger.info(
             'Evaluation strategy not specified so evaluating every epoch')
