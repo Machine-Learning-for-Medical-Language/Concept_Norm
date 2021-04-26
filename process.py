@@ -57,12 +57,15 @@ def build_dataset(file_dir_path, notedir, out_file_name):
 
     normdir = notedir.replace('note', 'norm')
 
-    input = []
+    # input = []
 
     for note in note_file_name:
         norm = note.replace('txt', 'norm')
         sentence_infos = mapping_concept_context(normdir + norm,
                                                  notedir + note)
+
+        input = []
+
         for index in range(len(sentence_infos)):
             sentence_info = sentence_infos[str(index)]
             text = sentence_info["text"]
@@ -106,7 +109,8 @@ def build_dataset(file_dir_path, notedir, out_file_name):
 
             print(tokens, tags)
 
-    read.save_in_json(out_file_name, input)
+        read.save_in_json(
+            os.path.join(out_file_name, norm.replace(".norm", "")), input)
 
 
 build_dataset("data/n2c2/train_dev/dev_file_list.txt",

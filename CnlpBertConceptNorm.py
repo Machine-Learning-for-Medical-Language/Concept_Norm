@@ -89,11 +89,22 @@ from torch.nn import Parameter
 
 
 class CosineLayer(nn.Module):
-    def __init__(self, weights_matrix):
+    def __init__(self,
+                 concept_dim=(434056, 768),
+                 concept_embeddings_pre=False):
         super(CosineLayer, self).__init__()
-        self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                requires_grad=False)
-        self.threshold = Parameter( torch.rand(1), requires_grad=True)
+
+        if concept_embeddings_pre == True:
+            weights_matrix = np.load(
+                "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
+            )
+            self.weight = Parameter(torch.from_numpy(weights_matrix),
+                                    requires_grad=False)
+        else:
+            self.weight = Parameter(torch.rand(concept_dim),
+                                    requires_grad=True)
+
+        self.threshold = Parameter(torch.tensor(0.5), requires_grad=True)
 
     def forward(self, features):
         eps = 1e-8
@@ -110,8 +121,6 @@ class CosineLayer(nn.Module):
         cui_less_score = torch.full(
             (batch_size, 1), 1).to(features.device) * self.threshold
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
-
-        return similarity_score
 
 
 class ArcMarginProduct(nn.Module):
@@ -146,15 +155,18 @@ class CnlpBertForClassification(BertPreTrainedModel):
     config_class = BertConfig
     base_model_prefix = "bert"
 
-    def __init__(self,
-                 config,
-                 num_labels_list=[1],
-                 scale=20,
-                 margin=0.5,
-                 layer=-1,
-                 freeze=False,
-                 tokens=True,
-                 tagger=[False]):
+    def __init__(
+        self,
+        config,
+        num_labels_list=[1],
+        scale=20,
+        margin=0.5,
+        layer=-1,
+        freeze=False,
+        tokens=True,
+        tagger=[False],
+        concept_embeddings_pre=False,
+    ):
 
         super().__init__(config)
         self.num_labels = num_labels_list
@@ -165,11 +177,16 @@ class CnlpBertForClassification(BertPreTrainedModel):
             for param in self.bert.parameters():
                 param.requires_grad = True
 
-        weights_matrix = np.load(
-            "data/n2c2/triplet_network/st_subpool/ontology+train_con_embeddings.npy"
-        )
+        # weights_matrix = np.load(
+        #     "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
+        #     # "data/n2c2/triplet_network/mark_subpool/ontology_con_embeddings.npy"
+        # )
 
         # self.linear = nn.Embedding(num_embeddings, embedding_dim)
+
+        self.cosine_similarity = CosineLayer(
+            concept_dim=(434056, 768),
+            concept_embeddings_pre=concept_embeddings_pre)
 
         self.feature_extractor = RepresentationProjectionLayer(
             config, layer=layer, tokens=tokens, tagger=tagger[0])
@@ -186,8 +203,6 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
 
         self.init_weights()
-
-        self.cosine_similarity = CosineLayer(weights_matrix)
 
         # Are we operating as a sconcepts_presentation
     def forward(

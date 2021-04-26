@@ -284,32 +284,14 @@ class NerProcessor(SequenceProcessor):
         # ]
 
         ################### semantic types ############################
-        # import read_files as read
-        # semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
-
-        # semantic_type_label = [
-        #     item.split('|')[3] for item in semantic_type_label
-        # ]
-        # tagger_labels = []
-        # for label in semantic_type_label:
-        #     label_new = '_'.join(label.split(' '))
-        #     tagger_labels.append("B-" + label_new)
-        #     tagger_labels.append("I-" + label_new)
-        # tagger_labels.append('O')
-        # tagger_labels.append('B-CUI_less')
-        # tagger_labels.append('I-CUI_less')
-        # return tagger_labels
-
-        ################### semantic groups ############################
         import read_files as read
-        semantic_group_label = read.textfile2list("data/umls/umls_st.txt")
+        semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
 
-        semantic_group_label = [
-            item.split('|')[1] for item in semantic_group_label
+        semantic_type_label = [
+            item.split('|')[3] for item in semantic_type_label
         ]
-        semantic_group_label = list(set(semantic_group_label))
         tagger_labels = []
-        for label in semantic_group_label:
+        for label in semantic_type_label:
             label_new = '_'.join(label.split(' '))
             tagger_labels.append("B-" + label_new)
             tagger_labels.append("I-" + label_new)
@@ -317,6 +299,24 @@ class NerProcessor(SequenceProcessor):
         tagger_labels.append('B-CUI_less')
         tagger_labels.append('I-CUI_less')
         return tagger_labels
+
+        ################### semantic groups ############################
+        # import read_files as read
+        # semantic_group_label = read.textfile2list("data/umls/umls_st.txt")
+
+        # semantic_group_label = [
+        #     item.split('|')[1] for item in semantic_group_label
+        # ]
+        # semantic_group_label = list(set(semantic_group_label))
+        # tagger_labels = []
+        # for label in semantic_group_label:
+        #     label_new = '_'.join(label.split(' '))
+        #     tagger_labels.append("B-" + label_new)
+        #     tagger_labels.append("I-" + label_new)
+        # tagger_labels.append('O')
+        # tagger_labels.append('B-CUI_less')
+        # tagger_labels.append('I-CUI_less')
+        # return tagger_labels
 
 
 class StJointProcessor(CnlpProcessor):
