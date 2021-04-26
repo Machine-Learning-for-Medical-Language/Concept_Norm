@@ -326,7 +326,8 @@ def main():
         layer=model_args.layer,
         tokens=model_args.token,
         freeze=model_args.freeze,
-        tagger=tagger)
+        tagger=tagger,
+        concept_embeddings_pre=True)
 
     model.resize_token_embeddings(len(tokenizer))
 

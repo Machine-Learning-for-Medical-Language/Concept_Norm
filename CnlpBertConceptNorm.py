@@ -99,7 +99,7 @@ class CosineLayer(nn.Module):
                 "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
             )
             self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=False)
+                                    requires_grad=True)
         else:
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
