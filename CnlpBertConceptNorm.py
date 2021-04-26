@@ -121,6 +121,7 @@ class CosineLayer(nn.Module):
         cui_less_score = torch.full(
             (batch_size, 1), 1).to(features.device) * self.threshold
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
+        return similarity_score
 
 
 class ArcMarginProduct(nn.Module):
