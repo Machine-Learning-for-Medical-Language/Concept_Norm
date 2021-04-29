@@ -310,10 +310,10 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True,
+        use_fast=True)
         # revision=model_args.model_revision,
         # use_auth_token=True if model_args.use_auth_token else None,
-        additional_special_tokens=['<e>', '</e>'])
+        # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
     model = CnlpBertForClassification.from_pretrained(
@@ -329,7 +329,7 @@ def main():
         tagger=tagger,
         concept_embeddings_pre=True)
 
-    model.resize_token_embeddings(len(tokenizer))
+    # model.resize_token_embeddings(len(tokenizer))
 
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
@@ -490,44 +490,65 @@ def main():
         eval_results.update(eval_result)
 
     if training_args.do_predict:
-        # if training_args.do_eval:
-        #     predictions_tasks_eval, labels_tasks_eval, metrics_tasks_eval = trainer.predict(
-        #         eval_dataset)
+        if training_args.do_eval:
+            predictions_tasks_eval, labels_tasks_eval, metrics_tasks_eval = trainer.predict(
+                eval_dataset)
 
-        #     for task_ind, task_name in enumerate(data_args.task_name):
-        #         predictions_task_eval = np.argmax(
-        #             predictions_tasks_eval[task_ind], axis=-1)
-        #         label_list_eval = cnlp_processors[task_name]().get_labels()
-        #         # true_predictions_eval = [
-        #         #     label_list_eval[prediction] for prediction, label in zip(
-        #         #         predictions_task_eval, labels_tasks_eval[task_ind])
-        #         #     if label != -100
-        #         # ]
-        #         true_predictions_eval = [
-        #             label_list_eval[prediction] for prediction, label in zip(
-        #                 predictions_task_eval, labels_tasks_eval)
-        #             if label != -100
-        #         ]
-        #         output_eval_predictions_file = os.path.join(
-        #             training_args.output_dir,
-        #             "%s_eval_predictions.txt" % task_name)
-        #         if trainer.is_world_process_zero():
-        #             with open(output_eval_predictions_file, "w") as writer:
-        #                 for prediction in true_predictions_eval:
-        #                     writer.write("".join(prediction) + "\n")
+            for task_ind, task_name in enumerate(data_args.task_name):
+                predictions_task_eval = np.argsort(
+                    predictions_tasks_eval[task_ind], axis=-1)
+                predictions_task_eval = predictions_task_eval[:, ::-1][:, :30]
+
+                # predictions_task_eval = np.argmax(
+                #     predictions_tasks_eval[task_ind], axis=-1)
+                label_list_eval = cnlp_processors[task_name]().get_labels()
+                # true_predictions_eval = [
+                #     label_list_eval[prediction] for prediction, label in zip(
+                #         predictions_task_eval, labels_tasks_eval[task_ind])
+                #     if label != -100
+                # ]
+                # true_predictions_eval = [
+                #     label_list_eval[prediction] for prediction, label in zip(
+                #         predictions_task_eval, labels_tasks_eval)
+                #     if label != -100
+                # ]
+                
+                true_predictions_eval = [[
+                    label_list_eval[prediction] for prediction in predictions
+                ] for predictions, label in zip(
+                    predictions_task_eval, labels_tasks_eval) if label != -100]
+                
+                output_eval_predictions_file = os.path.join(
+                    training_args.output_dir,
+                    "%s_eval_predictions.txt" % task_name)
+                if trainer.is_world_process_zero():
+                    with open(output_eval_predictions_file, "w") as writer:
+                        for prediction in true_predictions_eval:
+                            writer.write(" ".join(prediction) + "\n")
 
         ########################## Test Predictions #######################
         predictions_tasks, labels_tasks, metrics_tasks = trainer.predict(
             test_dataset)
         for task_ind, task_name in enumerate(data_args.task_name):
-            predictions_task = np.argmax(predictions_tasks[task_ind], axis=-1)
+            # predictions_task = np.argmax(predictions_tasks[task_ind], axis=-1)
+            predictions_tasks = np.argsort(
+                predictions_tasks[task_ind], axis=-1)
+            predictions_tasks = predictions_tasks[:, ::-1][:, :30]
+            
+            
             label_list = cnlp_processors[task_name]().get_labels()
             # Remove ignored index (special tokens)
-            true_predictions = [
-                label_list[prediction]
-                for prediction, label in zip(predictions_task, labels_tasks)
-                if label != -100
-            ]
+            # true_predictions = [
+            #     label_list[prediction]
+            #     for prediction, label in zip(predictions_task, labels_tasks)
+            #     if label != -100
+            # ]
+            
+            true_predictions = [[
+                    label_list[prediction] for prediction in predictions
+                ] for predictions, label in zip(
+                    predictions_tasks, labels_tasks) if label != -100]
+            
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:
                     logger.info("***** Test results for task %s *****" %
@@ -549,7 +570,7 @@ def main():
             if trainer.is_world_process_zero():
                 with open(output_test_predictions_file, "w") as writer:
                     for prediction in true_predictions:
-                        writer.write("".join(prediction) + "\n")
+                        writer.write(" ".join(prediction) + "\n")
     return eval_results
 
 

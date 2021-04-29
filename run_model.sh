@@ -16,10 +16,10 @@ pwd; hostname; date
 module load singularity
 
 
-OUTPUT_DIR=/temp_work/ch223150/outputs/joint_model/continue_1_ontology+train_all_e24_b400_seq16_1e4_sc45_m0.35
+OUTPUT_DIR=/temp_work/ch223150/outputs/joint_model/redo_continue_2_ontology+train_all_e10_b400_seq16_5e5_sc45_m0.35
     
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 train_system_joint.py \
-        --model_name_or_path /home/ch223150/projects/models/umls_bert_0/ \
+        --model_name_or_path /home/ch223150/projects/models/umls_bert_1/ \
         --data_dir /home/ch223150/projects/Concept_Norm/data/n2c2/joint_input/umls+data/ \
         --output_dir $OUTPUT_DIR \
         --task_name st_joint \
@@ -27,7 +27,7 @@ singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-pyt
         --do_eval \
         --do_predict \
         --train_batch_size 400 \
-        --num_train_epochs 3 \
+        --num_train_epochs 10 \
         --overwrite_output_dir true \
         --overwrite_cache false \
         --max_seq_length 16 \

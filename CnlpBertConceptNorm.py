@@ -96,7 +96,7 @@ class CosineLayer(nn.Module):
 
         if concept_embeddings_pre == True:
             weights_matrix = np.load(
-                "data/n2c2/triplet_network/con_norm/ontology+train+dev_con_embeddings.npy"
+                "data/n2c2/triplet_network/con_norm2/ontology+train+dev_con_embeddings.npy"
             )
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=True)
@@ -104,7 +104,7 @@ class CosineLayer(nn.Module):
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
 
-        self.threshold = Parameter(torch.tensor(0.502746), requires_grad=True)
+        self.threshold = Parameter(torch.tensor(0.5519474), requires_grad=True)
 
     def forward(self, features):
         eps = 1e-8
