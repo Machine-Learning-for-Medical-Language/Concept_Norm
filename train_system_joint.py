@@ -525,8 +525,10 @@ def main():
                     training_args.output_dir,
                     "%s_eval_predictions.txt" % task_name)
 
-                np.save(output_eval_predictions_file.repalce(".txt", ""),
-                        score_array_eval)
+                np.save(
+                    os.path.join(training_args.output_dir,
+                                 "%s_eval_predictions" % task_name),
+                    score_array_eval)
 
                 if trainer.is_world_process_zero():
                     with open(output_eval_predictions_file, "w") as writer:
@@ -550,8 +552,10 @@ def main():
             output_test_predictions_file = os.path.join(
                 training_args.output_dir,
                 "%s_test_predictions.txt" % (task_name))
-            np.save(output_test_predictions_file.repalce(".txt", ""),
-                    score_array)
+            np.save(
+                os.path.join(training_args.output_dir,
+                             "%s_test_predictions" % (task_name)),
+                score_array)
 
             label_list = cnlp_processors[task_name]().get_labels()
             # Remove ignored index (special tokens)
