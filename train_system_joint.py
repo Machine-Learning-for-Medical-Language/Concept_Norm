@@ -311,9 +311,9 @@ def main():
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
         use_fast=True)
-        # revision=model_args.model_revision,
-        # use_auth_token=True if model_args.use_auth_token else None,
-        # additional_special_tokens=['<e>', '</e>'])
+    # revision=model_args.model_revision,
+    # use_auth_token=True if model_args.use_auth_token else None,
+    # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
     model = CnlpBertForClassification.from_pretrained(
@@ -495,9 +495,15 @@ def main():
                 eval_dataset)
 
             for task_ind, task_name in enumerate(data_args.task_name):
-                predictions_task_eval = np.argsort(
+                predictions_task_id_eval = np.argsort(
                     predictions_tasks_eval[task_ind], axis=-1)
-                predictions_task_eval = predictions_task_eval[:, ::-1][:, :30]
+                predictions_task_id_eval = predictions_task_id_eval[:, ::
+                                                                    -1][:, :30]
+
+                score_array_eval = [
+                    row[predictions_task_id_eval[i]]
+                    for i, row in enumerate(predictions_tasks_eval[task_ind])
+                ]
 
                 # predictions_task_eval = np.argmax(
                 #     predictions_tasks_eval[task_ind], axis=-1)
@@ -507,20 +513,21 @@ def main():
                 #         predictions_task_eval, labels_tasks_eval[task_ind])
                 #     if label != -100
                 # ]
-                # true_predictions_eval = [
-                #     label_list_eval[prediction] for prediction, label in zip(
-                #         predictions_task_eval, labels_tasks_eval)
-                #     if label != -100
-                # ]
-                
+
+
                 true_predictions_eval = [[
                     label_list_eval[prediction] for prediction in predictions
-                ] for predictions, label in zip(
-                    predictions_task_eval, labels_tasks_eval) if label != -100]
-                
+                ] for predictions, label in zip(predictions_task_id_eval,
+                                                labels_tasks_eval)
+                                         if label != -100]
+
                 output_eval_predictions_file = os.path.join(
                     training_args.output_dir,
                     "%s_eval_predictions.txt" % task_name)
+
+                np.save(output_eval_predictions_file.repalce(".txt", ""),
+                        score_array_eval)
+
                 if trainer.is_world_process_zero():
                     with open(output_eval_predictions_file, "w") as writer:
                         for prediction in true_predictions_eval:
@@ -531,11 +538,21 @@ def main():
             test_dataset)
         for task_ind, task_name in enumerate(data_args.task_name):
             # predictions_task = np.argmax(predictions_tasks[task_ind], axis=-1)
-            predictions_tasks = np.argsort(
-                predictions_tasks[task_ind], axis=-1)
-            predictions_tasks = predictions_tasks[:, ::-1][:, :30]
-            
-            
+            predictions_tasks_id = np.argsort(predictions_tasks[task_ind],
+                                              axis=-1)
+            predictions_tasks_id = predictions_tasks_id[:, ::-1][:, :30]
+
+            score_array = [
+                row[predictions_tasks_id[i]]
+                for i, row in enumerate(predictions_tasks[task_ind])
+            ]
+
+            output_test_predictions_file = os.path.join(
+                training_args.output_dir,
+                "%s_test_predictions.txt" % (task_name))
+            np.save(output_test_predictions_file.repalce(".txt", ""),
+                    score_array)
+
             label_list = cnlp_processors[task_name]().get_labels()
             # Remove ignored index (special tokens)
             # true_predictions = [
@@ -543,12 +560,12 @@ def main():
             #     for prediction, label in zip(predictions_task, labels_tasks)
             #     if label != -100
             # ]
-            
+
             true_predictions = [[
-                    label_list[prediction] for prediction in predictions
-                ] for predictions, label in zip(
-                    predictions_tasks, labels_tasks) if label != -100]
-            
+                label_list[prediction] for prediction in predictions
+            ] for predictions, label in zip(predictions_tasks_id, labels_tasks)
+                                if label != -100]
+
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:
                     logger.info("***** Test results for task %s *****" %
@@ -564,13 +581,12 @@ def main():
                             writer.write("%s = %s\n" % (key, value))
 
             # Save predictions
-            output_test_predictions_file = os.path.join(
-                training_args.output_dir,
-                "%s_test_predictions.txt" % (task_name))
+
             if trainer.is_world_process_zero():
                 with open(output_test_predictions_file, "w") as writer:
                     for prediction in true_predictions:
                         writer.write(" ".join(prediction) + "\n")
+
     return eval_results
 
 
