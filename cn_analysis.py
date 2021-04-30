@@ -2,6 +2,7 @@ import os
 from collections import Counter
 
 import matplotlib.pyplot as plt
+import numpy as np
 import sklearn.metrics as metrics
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
@@ -177,8 +178,10 @@ def analyze_cn_topk(dev, cui_file_path, input_file_path):
         train_cui = read.add_dict(train_cui, item[1], item[2])
     # train_cui = [item[1] for item in train_input]
 
-    dev_pre = read.textfile2list(cui_file_path)
+    dev_pre = read.textfile2list(cui_file_path + ".txt")
     dev_pre = [item.split(" ") for item in dev_pre]
+
+    dev_pre_score = np.load(cui_file_path + ".npy")
 
     dev_input = read.read_from_tsv(input_file_path)
 
@@ -186,6 +189,8 @@ def analyze_cn_topk(dev, cui_file_path, input_file_path):
 
     count_all = len(dev_input)
     count = 0
+    countnot = 0
+    countst = 0
 
     count_see = 0
     count_see_all = 0
@@ -201,7 +206,7 @@ def analyze_cn_topk(dev, cui_file_path, input_file_path):
 
     output = []
 
-    for pre_cui, input in zip(dev_pre, dev_input):
+    for index, [pre_cui, input] in enumerate(zip(dev_pre, dev_input)):
         st, cui, mention = input
 
         st_pre = [
@@ -226,11 +231,20 @@ def analyze_cn_topk(dev, cui_file_path, input_file_path):
             print("Real data:", mention, cui, st)
             print(cui_synonyms[cui])
             print()
-            print("***prediction***")
-            for cui_pre in pre_cui[:2]:
 
-                print(cui_pre, process.get_st_cui(semantic_type, cui_pre),
-                      cui_synonyms[cui_pre])
+            countnot += 1
+            st_0 = process.get_st_cui(semantic_type, pre_cui[0])
+
+            st_1 = process.get_st_cui(semantic_type, pre_cui[1])
+            if st_0 != st_1:
+                countst += 1
+
+            print("***prediction***")
+            for cui_idx, cui_pre in enumerate(pre_cui[:2]):
+                score = dev_pre_score[index][cui_idx]
+                print(cui_pre, score,
+                      process.get_st_cui(semantic_type,
+                                         cui_pre), cui_synonyms[cui_pre])
 
                 print()
             print("***Done***")
@@ -285,10 +299,7 @@ def analyze_cn_topk(dev, cui_file_path, input_file_path):
         #             #     print()
         #             #     print()
         #             #     print()
-    print(
-        "acc",
-        count / count_all,
-    )
+    print("acc", count / count_all, "ambigupus", countst / countnot, countst)
 
     # print("seen", count_see / count_see_all, "unseen",
     #       count_unsee / count_unsee_all, "unseen gold truth but seen pred",
@@ -296,6 +307,6 @@ def analyze_cn_topk(dev, cui_file_path, input_file_path):
     # print("st", count_st / (count_all - count_cuiless))
 
 
-cui_file_path = "data/n2c2/models/umls+data_c4255/st_joint_test_predictions.txt"
+cui_file_path = "data/n2c2/models/umls+data_c4255/st_joint_test_predictions"
 input_file_path = "data/n2c2/processed/input_joint/umls+data/test.tsv"
 analyze_cn_topk(True, cui_file_path, input_file_path)

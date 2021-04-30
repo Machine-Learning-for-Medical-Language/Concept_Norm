@@ -310,12 +310,11 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True)
-    # revision=model_args.model_revision,
-    # use_auth_token=True if model_args.use_auth_token else None,
-    # additional_special_tokens=['<e>', '</e>'])
+        use_fast=True,
+        # revision=model_args.model_revision,
+        # use_auth_token=True if model_args.use_auth_token else None,
+        additional_special_tokens=['<e>', '</e>'])
 
-    pretrained = True
     model = CnlpBertForClassification.from_pretrained(
         model_name,
         config=config,
@@ -327,9 +326,10 @@ def main():
         tokens=model_args.token,
         freeze=model_args.freeze,
         tagger=tagger,
-        concept_embeddings_pre=True)
+        concept_embeddings_pre=True,
+        st_parameters_pre = False)
 
-    # model.resize_token_embeddings(len(tokenizer))
+    model.resize_token_embeddings(len(tokenizer))
 
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
@@ -514,7 +514,6 @@ def main():
                 #     if label != -100
                 # ]
 
-
                 true_predictions_eval = [[
                     label_list_eval[prediction] for prediction in predictions
                 ] for predictions, label in zip(predictions_task_id_eval,
@@ -554,8 +553,7 @@ def main():
                 "%s_test_predictions.txt" % (task_name))
             np.save(
                 os.path.join(training_args.output_dir,
-                             "%s_test_predictions" % (task_name)),
-                score_array)
+                             "%s_test_predictions" % (task_name)), score_array)
 
             label_list = cnlp_processors[task_name]().get_labels()
             # Remove ignored index (special tokens)

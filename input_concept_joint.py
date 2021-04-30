@@ -66,17 +66,17 @@ def generate_st_input(file_dir_path, file_path, output_path):
     read.save_in_tsv(output_path, input_new)
 
 
-generate_st_input("data/n2c2/train_dev/train_file_list.txt",
-                  "data/n2c2/processed/raw/train",
-                  "data/n2c2/processed/input_joint/sentence/train.tsv")
+# generate_st_input("data/n2c2/train_dev/train_file_list.txt",
+#                   "data/n2c2/processed/raw/train",
+#                   "data/n2c2/processed/input_joint/sentence/train.tsv")
 
-generate_st_input("data/n2c2/train_dev/dev_file_list.txt",
-                  "data/n2c2/processed/raw/dev",
-                  "data/n2c2/processed/input_joint/sentence/dev.tsv")
+# generate_st_input("data/n2c2/train_dev/dev_file_list.txt",
+#                   "data/n2c2/processed/raw/dev",
+#                   "data/n2c2/processed/input_joint/sentence/dev.tsv")
 
-generate_st_input("data/n2c2/test/test_file_list.txt",
-                  "data/n2c2/processed/raw/test",
-                  "data/n2c2/processed/input_joint/sentence/test.tsv")
+# generate_st_input("data/n2c2/test/test_file_list.txt",
+#                   "data/n2c2/processed/raw/test",
+#                   "data/n2c2/processed/input_joint/sentence/test.tsv")
 
 # generate_st_input("data/n2c2/processed/raw/dev",
 #                   "data/n2c2/processed/input_joint_mention/st_eval/dev.tsv")
@@ -86,16 +86,16 @@ generate_st_input("data/n2c2/test/test_file_list.txt",
 
 
 def combine_train_dev():
+    umls = read.read_from_tsv(
+        "data/n2c2/processed/input_joint/umls/train.tsv")
+
     train = read.read_from_tsv(
-        "data/n2c2/processed/input_joint/st_copy_combine/train_sep.tsv")
+        "data/n2c2/processed/input_joint/mention/train.tsv")
 
-    dev = read.read_from_tsv(
-        "data/n2c2/processed/input_joint/st_copy_combine/dev_sep.tsv")
-
-    train_new = train + dev
+    train_new = umls + train*60
 
     read.save_in_tsv(
-        "data/n2c2/processed/input_joint/st_copy_combine/train.tsv", train_new)
+        "data/n2c2/processed/input_joint/umls+data/train.tsv", train_new)
 
 
-# combine_train_dev()
+combine_train_dev()

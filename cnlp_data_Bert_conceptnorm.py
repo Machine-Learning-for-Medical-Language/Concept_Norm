@@ -83,11 +83,17 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     #         logger.info("Using output mode %s for task %s" %
     #                     (output_mode, task))
 
-    st_label_map = {label: i for i, label in enumerate(label_lists[0])}
     if len(label_lists) > 1:
+        st_label_map = {label: i for i, label in enumerate(label_lists[0])}
+
         concept_label_map = {
             label: i
             for i, label in enumerate(label_lists[1])
+        }
+    else:
+        concept_label_map = {
+            label: i
+            for i, label in enumerate(label_lists[0])
         }
 
     def label_from_example(example: InputExample, label_map: dict,
@@ -108,10 +114,18 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
 
         raise KeyError(output_mode)
 
-    labels_st = [
-        label_from_example(example, st_label_map, 1) for example in examples
-    ]
     if len(label_lists) > 1:
+        labels_st = [
+            label_from_example(example, st_label_map, 0)
+            for example in examples
+        ]
+
+        labels_concept = [
+            label_from_example(example, concept_label_map, 1)
+            for example in examples
+        ]
+
+    else:
         labels_concept = [
             label_from_example(example, concept_label_map, 1)
             for example in examples
@@ -198,7 +212,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         # else:
         #     inputs['event_tokens_m'] = [1] * len(inputs['input_ids_m'])
 
-        if labels_st[0] is not None:
+        if labels_concept[0] is not None:
             if len(label_lists) > 1:
                 feature = InputFeatures(**inputs,
                                         st_labels=labels_st[i],
@@ -206,7 +220,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
             else:
                 feature = InputFeatures(
                     **inputs,
-                    st_labels=labels_st[i],
+                    st_labels=labels_concept[i],
                 )
         else:
             feature = InputFeatures(**inputs)

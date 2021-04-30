@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 
 import numpy as np
 import torch
@@ -49,9 +50,9 @@ class ClassificationHead(nn.Module):
 class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
-        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        # self.activation = nn.Tanh()
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = nn.Tanh()
         self.layer_to_use = layer
         self.tokens = tokens
         self.tagger = tagger
@@ -78,8 +79,8 @@ class RepresentationProjectionLayer(nn.Module):
         else:
             # take <s> token (equiv. to [CLS])
             x = features[self.layer_to_use][:, 0, :]
-        # x = self.dropout(x)
-        # x = self.dense(x)
+            # x = self.dropout(x)
+            # x = self.dense(x)
         # x = self.activation(x)
         return x
 
@@ -91,20 +92,23 @@ from torch.nn import Parameter
 class CosineLayer(nn.Module):
     def __init__(self,
                  concept_dim=(434056, 768),
-                 concept_embeddings_pre=False):
+                 concept_embeddings_pre=False,
+                 path=None):
         super(CosineLayer, self).__init__()
 
-        if concept_embeddings_pre == True:
+        if concept_embeddings_pre:
             weights_matrix = np.load(
-                "data/n2c2/triplet_network/con_norm2/ontology+train+dev_con_embeddings.npy"
-            )
+                os.path.join(path, "ontology+train+dev_con_embeddings.npy"))
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=True)
+            threshold_value = np.loadtxt(os.path.join(path, "threshold.txt"))
+
+            self.threshold = Parameter(torch.from_numpy(threshold_value),
+                                       requires_grad=True)
         else:
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
-
-        self.threshold = Parameter(torch.tensor(0.5519474), requires_grad=True)
+            self.threshold = Parameter(torch.tensor(0.45), requires_grad=True)
 
     def forward(self, features):
         eps = 1e-8
@@ -122,6 +126,39 @@ class CosineLayer(nn.Module):
             (batch_size, 1), 1).to(features.device) * self.threshold
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
         return similarity_score
+
+
+# class CosineLayerSt(nn.Module):
+#     def __init__(self,
+#                  concept_dim=(128, 768),
+#                  concept_embeddings_st_pre=False):
+#         super(CosineLayerSt, self).__init__()
+
+#         if concept_embeddings_st_pre == True:
+
+#             weights_matrix = np.load(
+#                 "data/n2c2/triplet_network/con_norm3/ontology+train+dev_con_embeddings.npy"
+#             )
+#             self.weight = Parameter(torch.from_numpy(weights_matrix),
+#                                     requires_grad=True)
+#         else:
+#             weights_matrix = torch.empty(concept_dim)
+#             self.weight = Parameter(nn.init.normal_(weights_matrix),
+#                                     requires_grad=True)
+
+#     def forward(self, features):
+#         eps = 1e-8
+#         batch_size, fea_size = features.shape
+#         input_norm, weight_norm = features.norm(
+#             2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
+#         input_norm = torch.div(
+#             features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
+#         weight_norm = torch.div(
+#             self.weight,
+#             torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
+#         sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
+
+#         return sim_mt
 
 
 class ArcMarginProduct(nn.Module):
@@ -157,45 +194,49 @@ class CnlpBertForClassification(BertPreTrainedModel):
     base_model_prefix = "bert"
 
     def __init__(
-        self,
-        config,
-        num_labels_list=[1],
-        scale=20,
-        margin=0.5,
-        layer=-1,
-        freeze=False,
-        tokens=True,
-        tagger=[False],
-        concept_embeddings_pre=False,
-    ):
+            self,
+            config,
+            num_labels_list=[128, 434056],
+            # num_labels_list=[434056],
+            mu1=0.1,
+            mu2=1,
+            scale=20,
+            margin=0.5,
+            layer=-1,
+            freeze=False,
+            tokens=True,
+            tagger=[False, False],
+            concept_embeddings_pre=False,
+            st_parameters_pre=False):
 
         super().__init__(config)
         self.num_labels = num_labels_list
+        self.mu1 = mu1
+        self.mu2 = mu2
 
         self.bert = BertModel(config)
 
         if freeze:
             for param in self.bert.parameters():
-                param.requires_grad = True
-
-        # weights_matrix = np.load(
-        #     "data/n2c2/triplet_network/st_subpool/ontology+train+dev_con_embeddings.npy"
-        #     # "data/n2c2/triplet_network/mark_subpool/ontology_con_embeddings.npy"
-        # )
-
-        # self.linear = nn.Embedding(num_embeddings, embedding_dim)
+                param.requires_grad = False
 
         self.cosine_similarity = CosineLayer(
             concept_dim=(434056, 768),
-            concept_embeddings_pre=concept_embeddings_pre)
+            concept_embeddings_pre=concept_embeddings_pre,
+            path=config.name_or_path)
 
-        self.feature_extractor = RepresentationProjectionLayer(
-            config, layer=layer, tokens=tokens, tagger=tagger[0])
+        # self.cosine_similarity_st = CosineLayerSt(
+        #     concept_dim=(128, 768), concept_embeddings_st_pre=False)
 
-        # self.feature_extractor_mention = RepresentationProjectionLayer(
-        #     config, layer=layer, tokens=tokens, tagger=tagger[0])
+        self.feature_extractor_mention = RepresentationProjectionLayer(
+            config, layer=layer, tokens=True, tagger=tagger[0])
 
-        # self.classifier = ClassificationHead(config, self.num_labels[0])
+        self.feature_extractor_st = RepresentationProjectionLayer(
+            config, layer=layer, tokens=False, tagger=tagger[0])
+
+        if len(self.num_labels) > 1:
+
+            self.classifier = ClassificationHead(config, self.num_labels[0])
 
         # for task_ind, task_num_labels in enumerate(self.num_labels):
         #     self.classifiers.append(ClassificationHead(config,
@@ -204,6 +245,16 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
 
         self.init_weights()
+
+        if len(self.num_labels) > 1 and concept_embeddings_pre == True:
+            self.classifier.out_proj.weight.data = torch.tensor(
+                np.load(
+                    os.path.join(config.name_or_path,
+                                 "classfication_weights.npy")))
+            self.classifier.out_proj.bias.data = torch.tensor(
+                np.load(
+                    os.path.join(config.name_or_path,
+                                 "classfication_bias.npy")))
 
         # Are we operating as a sconcepts_presentation
     def forward(
@@ -255,28 +306,49 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         batch_size, seq_len = input_ids.shape
 
+        mu = [self.mu1, self.mu2]
+
         logits = []
 
         loss = None
 
-        features = self.feature_extractor(outputs.hidden_states, event_tokens)
+        features_mention = self.feature_extractor_mention(
+            outputs.hidden_states, event_tokens)
+
+        if len(self.num_labels) > 1:
+            feature_st = self.feature_extractor_st(outputs.hidden_states,
+                                                   event_tokens=None)
         # features_mention = self.feature_extractor_mention(
         #     outputs_mention.hidden_states, event_tokens_m)
         # features = 0.5 * features + 0.5 *features_mention
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
-            # if task_ind == 1:
-            #     task_logits = self.classifier(features)
-            # else:
-            task_logits_intermediate = self.cosine_similarity(features)
+            if task_ind == 0 and len(self.num_labels) == 2:
+                task_logits = self.classifier(feature_st)
+                # task_logits_st_intermediate = self.cosine_similarity_st(
+                #     feature_st)
 
-            if self.training:
-                task_logits_output = self.arcface(task_logits_intermediate,
-                                                  labels[task_ind])
-                task_logits = task_logits_output
+                # if self.training:
+
+                #     task_logits_st_output = self.arcface(
+                #         task_logits_st_intermediate, labels[task_ind])
+                #     task_logits = task_logits_st_output
+
+                # else:
+                #     task_logits = task_logits_st_intermediate
 
             else:
-                task_logits = task_logits_intermediate
+                task_logits_intermediate = self.cosine_similarity(
+                    features_mention)
+
+                if self.training:
+
+                    task_logits_output = self.arcface(task_logits_intermediate,
+                                                      labels[task_ind])
+                    task_logits = task_logits_output
+
+                else:
+                    task_logits = task_logits_intermediate
 
             logits.append(task_logits)
 
@@ -291,7 +363,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 if loss is None:
                     loss = task_loss
                 else:
-                    loss += task_loss
+                    if task_ind == 0:
+                        loss += mu[task_ind] * task_loss
 
         #### semantic type classifier ####
 

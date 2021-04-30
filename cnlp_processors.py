@@ -376,7 +376,7 @@ class StJointProcessor(CnlpProcessor):
                     # text_b = line[2]
                     text_a = '\t'.join(line[2:])
                     if sequence:
-                        st = line[0].split(' ')
+                        st = line[0]
                         concept = line[1]
 
                     else:
@@ -388,7 +388,7 @@ class StJointProcessor(CnlpProcessor):
                     label = None
             else:
                 if sequence:
-                    st = line[0].split(' ')
+                    st = line[0]
                     concept = line[1]
                 else:
                     st = line[0]
@@ -414,29 +414,29 @@ class StJointProcessor(CnlpProcessor):
     def get_one_score(self, results):
         return results['f1']
 
-    # def get_labels(self):
-    #     import read_files as read
-    #     semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
-
-    #     semantic_type_label = [
-    #         item.split('|')[3] for item in semantic_type_label
-    #     ]
-    #     st_labels = []
-    #     for label in semantic_type_label:
-    #         label_new = '_'.join(label.split(' '))
-    #         st_labels.append(label_new)
-
-    #     st_labels.append('CUI_less')
-
-    #     return st_labels
-
     def get_labels(self):
         import read_files as read
-        concept_labels = read.read_from_json(
-            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-                'CUI-less'
-            ]
-        return concept_labels
+        semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
+
+        semantic_type_label = [
+            item.split('|')[3] for item in semantic_type_label
+        ]
+        st_labels = []
+        for label in semantic_type_label:
+            label_new = '_'.join(label.split(' '))
+            st_labels.append(label_new)
+
+        st_labels.append('CUI_less')
+
+        return st_labels
+
+    # def get_labels(self):
+    #     import read_files as read
+    #     concept_labels = read.read_from_json(
+    #         "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+    #             'CUI-less'
+    #         ]
+    #     return concept_labels
 
 
 class CnJointProcessor(LabeledSentenceProcessor):

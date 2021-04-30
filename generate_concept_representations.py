@@ -14,7 +14,7 @@ def n2c2_input():
         "data/n2c2/triplet_network/st_subpool/ontology_cui")
     norm_mention = {}
     for idx, [_, norm, mention] in enumerate(ontology):
-        read.add_dict(norm_mention, norm, mention)
+        read.add_dict(norm_mention, norm, mention.lower())
 
     mentions = []
     idx = 0
@@ -34,16 +34,16 @@ def n2c2_input():
     input_mentions = [[syn] for syn in mentions]
 
     read.save_in_json(
-        "data/n2c2/triplet_network/con_norm/ontology_concept_synonyms",
+        "data/n2c2/triplet_network/con_norm_alllow/ontology_concept_synonyms",
         concept_synonyms)
 
     print(len(cui_mention_idx))
 
     read.save_in_tsv(
-        "data/n2c2/triplet_network/con_norm/ontology_synonyms.tsv",
+        "data/n2c2/triplet_network/con_norm_alllow/ontology_synonyms.tsv",
         input_mentions)
     read.save_in_json(
-        "data/n2c2/triplet_network/con_norm/ontology_concept_synonyms_idx",
+        "data/n2c2/triplet_network/con_norm_alllow/ontology_concept_synonyms_idx",
         cui_mention_idx)
 
     return mentions, cui_mention_idx
