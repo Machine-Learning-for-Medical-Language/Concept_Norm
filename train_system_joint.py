@@ -26,10 +26,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from os.path import basename, dirname
 from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
-from torch import nn
+
 import numpy as np
 import torch
 from filelock import FileLock
+from torch import nn
 from torch.utils.data.dataset import Dataset
 from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig, AutoModelForSequenceClassification, \
     AutoTokenizer, DataCollatorWithPadding, EvalPrediction, HfArgumentParser, Trainer, TrainingArguments, set_seed
@@ -315,6 +316,8 @@ def main():
         # use_auth_token=True if model_args.use_auth_token else None,
         additional_special_tokens=['<e>', '</e>'])
 
+    pretrained = True
+
     model = CnlpBertForClassification.from_pretrained(
         model_name,
         config=config,
@@ -327,12 +330,15 @@ def main():
         freeze=model_args.freeze,
         tagger=tagger,
         concept_embeddings_pre=True,
-        st_parameters_pre = False)
+        st_parameters_pre=False)
 
     model.resize_token_embeddings(len(tokenizer))
-    
-    
-    model = nn.DataParallel(model, device_ids=[0, 1])
+
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model, device_ids=[0, 1])
+
+        train_batch_size = training_args.per_device_train_batch_size
+
 
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
@@ -363,8 +369,7 @@ def main():
     output_test_file = os.path.join(training_args.output_dir,
                                     f"test_results.txt")
     if training_args.do_train:
-        batches_per_epoch = math.ceil(
-            len(train_dataset) / training_args.train_batch_size)
+        batches_per_epoch = math.ceil(len(train_dataset) / train_batch_size)
         total_steps = int(training_args.num_train_epochs * batches_per_epoch //
                           training_args.gradient_accumulation_steps)
 
