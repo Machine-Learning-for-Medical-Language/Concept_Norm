@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from os.path import basename, dirname
 from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
-
+from torch import nn
 import numpy as np
 import torch
 from filelock import FileLock
@@ -330,6 +330,9 @@ def main():
         st_parameters_pre = False)
 
     model.resize_token_embeddings(len(tokenizer))
+    
+    
+    model = nn.DataParallel(model, device_ids=[0, 1])
 
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
