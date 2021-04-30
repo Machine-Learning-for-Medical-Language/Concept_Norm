@@ -246,7 +246,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         self.init_weights()
 
-        if len(self.num_labels) > 1 and concept_embeddings_pre == True:
+        if len(self.num_labels) > 1 and st_parameters_pre == True:
             self.classifier.out_proj.weight.data = torch.tensor(
                 np.load(
                     os.path.join(config.name_or_path,

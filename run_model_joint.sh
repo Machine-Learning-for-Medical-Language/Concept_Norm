@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=chip-gpu             # queue to be used
 #SBATCH --account=chip
-#SBATCH --time=8:00:00             # Running time (in hours-minutes-seconds)
+#SBATCH --time=16:00:00             # Running time (in hours-minutes-seconds)
 #SBATCH --job-name=conorm             # Job name
 #SBATCH --mail-type=BEGIN,END,FAIL      # send and email when the job begins, ends or fails
 #SBATCH --mail-user=dongfang.xu@childrens.harvard.edu      # Email address to send the job status
