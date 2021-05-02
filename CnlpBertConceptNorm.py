@@ -106,6 +106,7 @@ class CosineLayer(nn.Module):
             self.threshold = Parameter(torch.tensor(threshold_value),
                                        requires_grad=True)
         else:
+
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
             self.threshold = Parameter(torch.tensor(0.45), requires_grad=True)
@@ -231,8 +232,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        self.feature_extractor_st = RepresentationProjectionLayer(
-            config, layer=layer, tokens=False, tagger=tagger[0])
+        # self.feature_extractor_st = RepresentationProjectionLayer(
+        #     config, layer=layer, tokens=False, tagger=tagger[0])
 
         if len(self.num_labels) > 1:
 
@@ -315,16 +316,16 @@ class CnlpBertForClassification(BertPreTrainedModel):
         features_mention = self.feature_extractor_mention(
             outputs.hidden_states, event_tokens)
 
-        if len(self.num_labels) > 1:
-            feature_st = self.feature_extractor_st(outputs.hidden_states,
-                                                   event_tokens=None)
+        # if len(self.num_labels) > 1:
+        #     feature_st = self.feature_extractor_st(outputs.hidden_states,
+        #                                            event_tokens=None)
         # features_mention = self.feature_extractor_mention(
         #     outputs_mention.hidden_states, event_tokens_m)
         # features = 0.5 * features + 0.5 *features_mention
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
             if task_ind == 0 and len(self.num_labels) == 2:
-                task_logits = self.classifier(feature_st)
+                task_logits = self.classifier(features_mention)
                 # task_logits_st_intermediate = self.cosine_similarity_st(
                 #     feature_st)
 
@@ -363,8 +364,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 if loss is None:
                     loss = task_loss
                 else:
-                    if task_ind == 0:
-                        loss += mu[task_ind] * task_loss
+                    loss += mu[task_ind] * task_loss
 
         #### semantic type classifier ####
 
