@@ -311,10 +311,10 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True,
+        use_fast=True)
         # revision=model_args.model_revision,
         # use_auth_token=True if model_args.use_auth_token else None,
-        additional_special_tokens=['<e>', '</e>'])
+        # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
 
@@ -330,7 +330,7 @@ def main():
         freeze=model_args.freeze,
         tagger=tagger,
         concept_embeddings_pre=True,
-        st_parameters_pre=False)
+        st_parameters_pre=True)
 
     model.resize_token_embeddings(len(tokenizer))
 
@@ -338,6 +338,8 @@ def main():
         model = nn.DataParallel(model, device_ids=[0, 1])
 
         train_batch_size = training_args.per_device_train_batch_size
+    else:
+        train_batch_size = training_args.train_batch_size
 
 
     # Get datasets

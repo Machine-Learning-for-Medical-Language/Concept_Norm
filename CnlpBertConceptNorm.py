@@ -103,7 +103,7 @@ class CosineLayer(nn.Module):
                                     requires_grad=True)
             threshold_value = np.loadtxt(os.path.join(path, "threshold.txt"))
 
-            self.threshold = Parameter(torch.from_numpy(threshold_value),
+            self.threshold = Parameter(torch.tensor(threshold_value),
                                        requires_grad=True)
         else:
             self.weight = Parameter(torch.rand(concept_dim),

@@ -16,9 +16,9 @@ pwd; hostname; date
 module load singularity
 
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 train_system_joint.py \
---model_name_or_path /temp_work/ch223150/outputs/joint_model/continue_1_ontology+train_all_e24_b400_seq16_1e4_sc45_m0.35/checkpoint-4255/ \
+--model_name_or_path /temp_work/ch223150/outputs/joint_model/redo_continue_2_ontology+train_all_e10_b400_seq16_5e5_sc45_m0.35/checkpoint-17020/ \
 --data_dir /home/ch223150/projects/Concept_Norm/data/n2c2/joint_input/umls+data/ \
---output_dir /temp_work/ch223150/outputs/joint_model/continue_1_ontology+train_all_e24_b400_seq16_1e4_sc45_m0.35/checkpoint-4255/ \
+--output_dir /temp_work/ch223150/outputs/joint_model/redo_continue_2_ontology+train_all_e10_b400_seq16_5e5_sc45_m0.35/checkpoint-17020/ \
 --task_name st_joint \
 --do_eval \
 --do_predict \

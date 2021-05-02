@@ -1,5 +1,5 @@
 import os
-
+import argparse
 import numpy as np
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
@@ -7,7 +7,7 @@ import read_files as read
 from CnlpBertConceptNorm import CnlpBertForClassification
 
 
-def load_model(model_path, save_path):
+def main(model_path, save_path):
 
     # model_path = "/home/dongfangxu/Projects/Concept_Norm/data/n2c2/models/checkpoint_2/"
 
@@ -52,11 +52,28 @@ def load_model(model_path, save_path):
     # weights = model.cosine_similarity.weight.detach().numpy()
     # threshold = model.cosine_similarity.threshold.detach().numpy()
     # print(threshold)
+    t = np.loadtxt(os.path.join(save_path, "threshold.txt"))
+    print(t)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description=
+        'Generate sentence embedding for each sentence in the sentence corpus '
+    )
+
+    parser.add_argument('--model_path',
+                        help='the direcotory of the model',
+                        required=True)
+
+    parser.add_argument(
+        '--save_path',
+        help='the type of the model, sentence_bert or just bert',
+        required=True)
+    
+    args = parser.parse_args()
+    model_path = args.model_path
+    save_path = args.save_path
+    
+    main(model_path, save_path)
 
 
-model_path = "/home/dongfangxu/Projects/Concept_Norm/data/n2c2/models/new1/"
-save_path = "data/bert_3/"
-load_model(model_path, save_path)
-
-t = np.loadtxt(os.path.join(save_path, "threshold.txt"))
-print(t)
