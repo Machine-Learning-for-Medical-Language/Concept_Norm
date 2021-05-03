@@ -232,6 +232,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
+        st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
+            np.float32)
+        st_2_concept = torch.from_numpy(st_2_concept)
+        self.st_2_concept = st_2_concept
+
         # self.feature_extractor_st = RepresentationProjectionLayer(
         #     config, layer=layer, tokens=False, tagger=tagger[0])
 
@@ -342,6 +347,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 task_logits_intermediate = self.cosine_similarity(
                     features_mention)
 
+                st_logits = torch.nn.Softmax(logits[0])
+                cui_logits = torch.matmul(st_logits, self.st_2_concept.T)
+
+                task_logits_intermediate += 0.5 * cui_logits
+
                 if self.training:
 
                     task_logits_output = self.arcface(task_logits_intermediate,
@@ -365,32 +375,6 @@ class CnlpBertForClassification(BertPreTrainedModel):
                     loss = task_loss
                 else:
                     loss += mu[task_ind] * task_loss
-
-        #### semantic type classifier ####
-
-        # if labels is not None:
-        #     loss_fct1 = CrossEntropyLoss()
-        # task_loss1 = loss_fct1(task_logits1.view(-1, self.num_labels[0]),
-        #                        st_labels.view(-1))
-        # if loss is None:
-        #     loss = task_loss1
-        # else:
-        #     loss += task_loss1
-
-        ### Concept representation layer ####
-
-        # task_logits = self.cosine_similarity(features)
-
-        # if concept_labels is not None:
-
-        # loss_fct2 = CosineEmbeddingLoss()
-        # task_loss2 = loss_fct2(
-        #     features, concepts_presentation,
-        #     torch.Tensor(features.size(0)).cuda().fill_(1.0))
-        # if loss is None:
-        #     loss = task_loss2
-        # else:
-        #     loss += task_loss2
 
         if self.training:
             return SequenceClassifierOutput(
