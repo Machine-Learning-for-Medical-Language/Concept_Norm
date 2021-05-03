@@ -232,10 +232,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        # st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
-        #     np.float32)
-        # st_2_concept = torch.from_numpy(st_2_concept)
-        # self.st_2_concept = st_2_concept
+        st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
+            np.float32)
+        st_2_concept = torch.from_numpy(st_2_concept)
+        self.st_2_concept = st_2_concept
 
         # self.normalize = torch.nn.Softmax(dim=1)
 
