@@ -232,12 +232,12 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
-            np.float32)
-        st_2_concept = torch.from_numpy(st_2_concept)
-        self.st_2_concept = st_2_concept
+        # st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
+        #     np.float32)
+        # st_2_concept = torch.from_numpy(st_2_concept)
+        # self.st_2_concept = st_2_concept
         
-        self.normalize = torch.nn.Softmax(dim=1)
+        # self.normalize = torch.nn.Softmax(dim=1)
 
         # self.feature_extractor_st = RepresentationProjectionLayer(
         #     config, layer=layer, tokens=False, tagger=tagger[0])
@@ -349,11 +349,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 task_logits_intermediate = self.cosine_similarity(
                     features_mention)
                 
-                
-                st_logits = self.normalize(logits[0])
-                cui_logits = torch.matmul(st_logits, self.st_2_concept.T.to(st_logits.device))
+                # st_logits = self.normalize(logits[0])
+                # cui_logits = torch.matmul(st_logits, self.st_2_concept.T.to(st_logits.device))
 
-                task_logits_intermediate += 0.5 * cui_logits
+                # task_logits_intermediate += 0.5 * cui_logits
 
                 if self.training:
 
