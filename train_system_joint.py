@@ -311,10 +311,10 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True,
+        use_fast=True)
         # revision=model_args.model_revision,
         # use_auth_token=True if model_args.use_auth_token else None,
-        additional_special_tokens=['<e>', '</e>'])
+        # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
 
@@ -329,10 +329,10 @@ def main():
         tokens=model_args.token,
         freeze=model_args.freeze,
         tagger=tagger,
-        concept_embeddings_pre=False,
+        concept_embeddings_pre=True,
         st_parameters_pre=False)
 
-    model.resize_token_embeddings(len(tokenizer))
+    # model.resize_token_embeddings(len(tokenizer))
 
     if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model, device_ids=[0, 1])
