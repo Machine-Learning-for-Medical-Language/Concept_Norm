@@ -124,7 +124,7 @@ class CosineLayer(nn.Module):
         sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
 
         cui_less_score = torch.full(
-            (batch_size, 1), 1).to(features.device) * self.threshold
+            (batch_size, 1), 1).to(features.device) * self.threshold.to(features.device)
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
         return similarity_score
 
@@ -233,10 +233,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
-            np.float32)
-        st_2_concept = torch.from_numpy(st_2_concept)
-        self.st_2_concept = st_2_concept
+        # st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
+        #     np.float32)
+        # st_2_concept = torch.from_numpy(st_2_concept)
+        # self.st_2_concept = st_2_concept
 
         # self.normalize = torch.nn.Softmax(dim=1)
 
@@ -353,10 +353,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
                     features_mention)
 
 
-                cui_logits = torch.matmul(
-                    st_logits[0], self.st_2_concept.T.to(st_logits[0].device))
+                # cui_logits = torch.matmul(
+                #     st_logits[0], self.st_2_concept.T.to(st_logits[0].device))
 
-                task_logits_intermediate += 0.01 * cui_logits
+                # task_logits_intermediate += 0.01 * cui_logits
 
                 if self.training:
 

@@ -329,8 +329,8 @@ def main():
         tokens=model_args.token,
         freeze=model_args.freeze,
         tagger=tagger,
-        concept_embeddings_pre=True,
-        st_parameters_pre=True)
+        concept_embeddings_pre=False,
+        st_parameters_pre=False)
 
     # model.resize_token_embeddings(len(tokenizer))
 
@@ -528,7 +528,7 @@ def main():
                 true_predictions_eval = [[
                     label_list_eval[prediction] for prediction in predictions
                 ] for predictions, label in zip(predictions_task_id_eval,
-                                                labels_tasks_eval)
+                                                labels_tasks_eval[task_ind])
                                          if label != -100]
 
                 output_eval_predictions_file = os.path.join(
@@ -576,7 +576,7 @@ def main():
 
             true_predictions = [[
                 label_list[prediction] for prediction in predictions
-            ] for predictions, label in zip(predictions_tasks_id, labels_tasks)
+            ] for predictions, label in zip(predictions_tasks_id, labels_tasks[task_ind])
                                 if label != -100]
 
             if trainer.is_world_process_zero():
