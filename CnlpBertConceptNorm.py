@@ -162,7 +162,7 @@ class CosineLayerSt(nn.Module):
 
 
 class ArcMarginProduct(nn.Module):
-    def __init__(self, s, m, easy_margin=False):
+    def __init__(self, s, m, easy_margin=True):
         super(ArcMarginProduct, self).__init__()
 
         self.s = s
@@ -176,11 +176,11 @@ class ArcMarginProduct(nn.Module):
     def forward(self, cosine_score, labels):
         sine = torch.sqrt((1.0 - torch.pow(cosine_score, 2)).clamp(0, 1))
         phi = cosine_score * self.cos_m - sine * self.sin_m
-        # if self.easy_margin:
-        #     phi = torch.where(cosine_score > 0, phi, cosine_score)
-        # else:
-        #     phi = torch.where(cosine_score > self.th, phi,
-        #                       cosine_score - self.mm)
+        if self.easy_margin:
+            phi = torch.where(cosine_score > 0, phi, cosine_score)
+        else:
+            phi = torch.where(cosine_score > self.th, phi,
+                              cosine_score - self.mm)
 
         one_hot = torch.zeros(cosine_score.size()).to(cosine_score.device)
         one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
@@ -320,6 +320,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
         logits = []
 
         loss = None
+        
+        st_logits = []
 
         features_mention = self.feature_extractor_mention(
             outputs.hidden_states, event_tokens)
@@ -336,7 +338,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 # task_logits = self.classifier(features_mention)
                 task_logits_st_intermediate = self.cosine_similarity_st(
                     features_mention)
-
+                st_logits.append(task_logits_st_intermediate)
                 if self.training:
 
                     task_logits_st_output = self.arcface(
@@ -350,11 +352,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 task_logits_intermediate = self.cosine_similarity(
                     features_mention)
 
-                # st_logits = self.normalize(logits[0])
-                cui_logits = torch.matmul(
-                    logits[0], self.st_2_concept.T.to(logits[0].device))
 
-                task_logits_intermediate += 0.1 * cui_logits
+                cui_logits = torch.matmul(
+                    st_logits[0], self.st_2_concept.T.to(st_logits[0].device))
+
+                task_logits_intermediate += 0.01 * cui_logits
 
                 if self.training:
 

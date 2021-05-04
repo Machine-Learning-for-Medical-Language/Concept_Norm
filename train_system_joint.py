@@ -110,14 +110,14 @@ class CnlpTrainingArguments(TrainingArguments):
             "Number of times to evaluate and possibly save model per training epoch (allows for a lazy kind of early stopping)"
         })
 
-    train_batch_size: int = field(
-        default=32,
-        metadata={
-            "help":
-            "The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
-        },
-    )
+    # train_batch_size: int = field(
+    #     default=32,
+    #     metadata={
+    #         "help":
+    #         "The maximum total input sequence length after tokenization. Sequences longer "
+    #         "than this will be truncated, sequences shorter will be padded."
+    #     },
+    # )
 
     learning_rate: float = field(
         default=5e-5,
@@ -334,12 +334,14 @@ def main():
 
     # model.resize_token_embeddings(len(tokenizer))
 
-    if torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model, device_ids=[0, 1])
+    # if torch.cuda.device_count() > 1:
+    #     # model = nn.DataParallel(model, device_ids=[0, 1])
 
-        train_batch_size = training_args.per_device_train_batch_size
-    else:
-        train_batch_size = training_args.train_batch_size
+    #     train_batch_size = training_args.per_device_train_batch_size
+    # else:
+    #     train_batch_size = training_args.train_batch_size
+    
+    train_batch_size = training_args.per_device_train_batch_size * max(1, training_args.n_gpu)
 
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
