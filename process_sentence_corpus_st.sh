@@ -15,7 +15,7 @@ pwd; hostname; date
 
 module load singularity
 
-OUTPUT_DIR=/temp_work/ch223150/outputs/joint_model/1new_joint_st_cn_ontology+train_all_e10_b400_seq16_1e4_sc45_m0.35/checkpoint-33245/
+OUTPUT_DIR=/temp_work/ch223150/outputs/joint_model/2new_joint_st_cn_ontology+train_all_e10_b400_seq16_1e4_sc45_m0.35/checkpoint-33245/
 OUTPUT_DIR_BERT=$OUTPUT_DIR/bert
 
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 extract_bert.py \
