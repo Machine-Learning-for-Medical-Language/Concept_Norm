@@ -129,37 +129,36 @@ class CosineLayer(nn.Module):
         return similarity_score
 
 
-# class CosineLayerSt(nn.Module):
-#     def __init__(self,
-#                  concept_dim=(128, 768),
-#                  concept_embeddings_st_pre=False):
-#         super(CosineLayerSt, self).__init__()
+class CosineLayerSt(nn.Module):
+    def __init__(self,
+                 st_dim=(128, 768),
+                 concept_embeddings_st_pre=False,
+                 path=None):
+        super(CosineLayerSt, self).__init__()
 
-#         if concept_embeddings_st_pre == True:
+        if concept_embeddings_st_pre == True:
 
-#             weights_matrix = np.load(
-#                 "data/n2c2/triplet_network/con_norm3/ontology+train+dev_con_embeddings.npy"
-#             )
-#             self.weight = Parameter(torch.from_numpy(weights_matrix),
-#                                     requires_grad=True)
-#         else:
-#             weights_matrix = torch.empty(concept_dim)
-#             self.weight = Parameter(nn.init.normal_(weights_matrix),
-#                                     requires_grad=True)
+            weights_matrix = np.load(
+                os.path.join(path, "classfication_weights.npy"))
 
-#     def forward(self, features):
-#         eps = 1e-8
-#         batch_size, fea_size = features.shape
-#         input_norm, weight_norm = features.norm(
-#             2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
-#         input_norm = torch.div(
-#             features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
-#         weight_norm = torch.div(
-#             self.weight,
-#             torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
-#         sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
+            self.weight = Parameter(torch.from_numpy(weights_matrix),
+                                    requires_grad=True)
+        else:
+            self.weight = Parameter(torch.rand(st_dim), requires_grad=True)
 
-#         return sim_mt
+    def forward(self, features):
+        eps = 1e-8
+        batch_size, fea_size = features.shape
+        input_norm, weight_norm = features.norm(
+            2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
+        input_norm = torch.div(
+            features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
+        weight_norm = torch.div(
+            self.weight,
+            torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
+        sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
+
+        return sim_mt
 
 
 class ArcMarginProduct(nn.Module):
@@ -226,8 +225,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
             concept_embeddings_pre=concept_embeddings_pre,
             path=config.name_or_path)
 
-        # self.cosine_similarity_st = CosineLayerSt(
-        #     concept_dim=(128, 768), concept_embeddings_st_pre=False)
+        self.cosine_similarity_st = CosineLayerSt(
+            st_dim=(128, 768),
+            concept_embeddings_st_pre=st_parameters_pre,
+            path=config.name_or_path)
 
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
@@ -242,9 +243,9 @@ class CnlpBertForClassification(BertPreTrainedModel):
         # self.feature_extractor_st = RepresentationProjectionLayer(
         #     config, layer=layer, tokens=False, tagger=tagger[0])
 
-        if len(self.num_labels) > 1:
+        # if len(self.num_labels) > 1:
 
-            self.classifier = ClassificationHead(config, self.num_labels[0])
+        #     self.classifier = ClassificationHead(config, self.num_labels[0])
 
         # for task_ind, task_num_labels in enumerate(self.num_labels):
         #     self.classifiers.append(ClassificationHead(config,
@@ -254,15 +255,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         self.init_weights()
 
-        if len(self.num_labels) > 1 and st_parameters_pre == True:
-            self.classifier.out_proj.weight.data = torch.tensor(
-                np.load(
-                    os.path.join(config.name_or_path,
-                                 "classfication_weights.npy")))
-            self.classifier.out_proj.bias.data = torch.tensor(
-                np.load(
-                    os.path.join(config.name_or_path,
-                                 "classfication_bias.npy")))
+        # if len(self.num_labels) > 1 and st_parameters_pre == True:
+        #     self.classifier.out_proj.weight.data = torch.tensor(
+        #         np.load(
+        #             os.path.join(config.name_or_path,
+        #                          "classfication_weights.npy")))
+        #     self.classifier.out_proj.bias.data = torch.tensor(
+        #         np.load(
+        #             os.path.join(config.name_or_path,
+        #                          "classfication_bias.npy")))
 
         # Are we operating as a sconcepts_presentation
     def forward(
@@ -332,25 +333,26 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
             if task_ind == 0 and len(self.num_labels) == 2:
-                task_logits = self.classifier(features_mention)
-                # task_logits_st_intermediate = self.cosine_similarity_st(
-                #     feature_st)
+                # task_logits = self.classifier(features_mention)
+                task_logits_st_intermediate = self.cosine_similarity_st(
+                    features_mention)
 
-                # if self.training:
+                if self.training:
 
-                #     task_logits_st_output = self.arcface(
-                #         task_logits_st_intermediate, labels[task_ind])
-                #     task_logits = task_logits_st_output
+                    task_logits_st_output = self.arcface(
+                        task_logits_st_intermediate, labels[task_ind])
+                    task_logits = task_logits_st_output
 
-                # else:
-                #     task_logits = task_logits_st_intermediate
+                else:
+                    task_logits = task_logits_st_intermediate
 
             else:
                 task_logits_intermediate = self.cosine_similarity(
                     features_mention)
 
-                st_logits = self.normalize(logits[0])
-                cui_logits = torch.matmul(st_logits, self.st_2_concept.T.to(st_logits.device))
+                # st_logits = self.normalize(logits[0])
+                cui_logits = torch.matmul(
+                    logits[0], self.st_2_concept.T.to(logits[0].device))
 
                 task_logits_intermediate += 0.1 * cui_logits
 
