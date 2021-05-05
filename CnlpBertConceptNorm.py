@@ -334,9 +334,9 @@ class CnlpBertForClassification(BertPreTrainedModel):
         cui_logits_intermediate = self.cosine_similarity(features_mention)
 
         st_logits_intermediate = cui_logits_intermediate.unsqueeze(
-            1) * self.concept_2_st.T
+            1) * self.concept_2_st.T.to(cui_logits_intermediate.device)
 
-        st_logits = self.st_transformation(st_logits_intermediate)
+        st_logits = self.st_transformation(st_logits_intermediate).squeeze(-1)
 
         if self.training:
             cui_logits_output = self.arcface(cui_logits_intermediate,
