@@ -1,3 +1,6 @@
+import numpy as np
+
+import process_funtions as process
 import read_files as read
 
 
@@ -49,4 +52,37 @@ def n2c2_input():
     return mentions, cui_mention_idx
 
 
-n2c2_input()
+# n2c2_input()
+
+
+def generate_st_representations():
+    semantic_type = read.read_from_json(
+        "data/umls/cui_sgroup_term_snomed_rxnorm_dict_all")
+    semantic_type['CUI-less'] = ['CUI_less']
+
+    cuis = read.read_from_json(
+        "data/n2c2/triplet_network/st_subpool/ontology_cui")
+    cuis += ['CUI-less']
+
+    semantic_type_label = read.read_from_json("data/umls/umls_sg")
+
+    st_labels = []
+    for label in semantic_type_label:
+        label_new = '_'.join(label.split(' '))
+        st_labels.append(label_new)
+
+    st_labels.append('CUI_less')
+
+    st_label_map = {label: i for i, label in enumerate(st_labels)}
+
+    cui_st = [
+        st_label_map['_'.join(
+            process.get_sg_cui(semantic_type, cui).split(' '))] for cui in cuis
+    ]
+    matrix = np.eye(len(st_labels))[cui_st]
+    print(matrix.shape)
+    print(matrix[:2])
+    np.save("data/umls/cui_sg_matrix", matrix)
+
+
+generate_st_representations()

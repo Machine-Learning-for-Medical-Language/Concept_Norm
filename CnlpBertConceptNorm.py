@@ -100,7 +100,7 @@ class CosineLayer(nn.Module):
             weights_matrix = np.load(
                 os.path.join(path, "ontology+train+dev_con_embeddings.npy"))
             self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=True)
+                                    requires_grad=False)
             threshold_value = np.loadtxt(os.path.join(path, "threshold.txt"))
 
             self.threshold = Parameter(torch.tensor(threshold_value),
@@ -232,7 +232,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        concept_st = np.load("data/umls/cui_st_matrix.npy").astype(np.float32)
+        concept_st = np.load("data/umls/cui_sg_matrix.npy").astype(np.float32)
         self.concept_2_st = torch.from_numpy(concept_st)
 
         self.st_transformation = torch.nn.MaxPool1d(kernel_size=434057,
