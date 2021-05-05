@@ -50,9 +50,9 @@ class ClassificationHead(nn.Module):
 class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.activation = nn.Tanh()
+        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        # self.activation = nn.Tanh()
         self.layer_to_use = layer
         self.tokens = tokens
         self.tagger = tagger
