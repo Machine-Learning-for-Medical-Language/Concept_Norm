@@ -311,10 +311,10 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True)
-    # revision=model_args.model_revision,
-    # use_auth_token=True if model_args.use_auth_token else None,
-    # additional_special_tokens=['<e>', '</e>'])
+        use_fast=True,
+        # revision=model_args.model_revision,
+        # use_auth_token=True if model_args.use_auth_token else None,
+        additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
 
@@ -329,19 +329,12 @@ def main():
         tokens=model_args.token,
         freeze=model_args.freeze,
         tagger=tagger,
-        concept_embeddings_pre=False,
-        st_parameters_pre=False)
+        concept_embeddings_pre=True)
 
-    # model.resize_token_embeddings(len(tokenizer))
+    model.resize_token_embeddings(len(tokenizer))
 
-    # if torch.cuda.device_count() > 1:
-    #     # model = nn.DataParallel(model, device_ids=[0, 1])
-
-    #     train_batch_size = training_args.per_device_train_batch_size
-    # else:
-    #     train_batch_size = training_args.train_batch_size
-    
-    train_batch_size = training_args.per_device_train_batch_size * max(1, training_args.n_gpu)
+    train_batch_size = training_args.per_device_train_batch_size * max(
+        1, training_args.n_gpu)
 
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
@@ -576,8 +569,8 @@ def main():
 
             true_predictions = [[
                 label_list[prediction] for prediction in predictions
-            ] for predictions, label in zip(predictions_tasks_id, labels_tasks[task_ind])
-                                if label != -100]
+            ] for predictions, label in zip(
+                predictions_tasks_id, labels_tasks[task_ind]) if label != -100]
 
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:

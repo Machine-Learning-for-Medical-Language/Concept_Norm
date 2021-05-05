@@ -123,42 +123,42 @@ class CosineLayer(nn.Module):
             torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
         sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
 
-        cui_less_score = torch.full(
-            (batch_size, 1), 1).to(features.device) * self.threshold.to(features.device)
+        cui_less_score = torch.full((batch_size, 1), 1).to(
+            features.device) * self.threshold.to(features.device)
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
         return similarity_score
 
 
-class CosineLayerSt(nn.Module):
-    def __init__(self,
-                 st_dim=(128, 768),
-                 concept_embeddings_st_pre=False,
-                 path=None):
-        super(CosineLayerSt, self).__init__()
+# class CosineLayerSt(nn.Module):
+#     def __init__(self,
+#                  st_dim=(128, 768),
+#                  concept_embeddings_st_pre=False,
+#                  path=None):
+#         super(CosineLayerSt, self).__init__()
 
-        if concept_embeddings_st_pre == True:
+#         if concept_embeddings_st_pre == True:
 
-            weights_matrix = np.load(
-                os.path.join(path, "classfication_weights.npy"))
+#             weights_matrix = np.load(
+#                 os.path.join(path, "classfication_weights.npy"))
 
-            self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=True)
-        else:
-            self.weight = Parameter(torch.rand(st_dim), requires_grad=True)
+#             self.weight = Parameter(torch.from_numpy(weights_matrix),
+#                                     requires_grad=True)
+#         else:
+#             self.weight = Parameter(torch.rand(st_dim), requires_grad=True)
 
-    def forward(self, features):
-        eps = 1e-8
-        batch_size, fea_size = features.shape
-        input_norm, weight_norm = features.norm(
-            2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
-        input_norm = torch.div(
-            features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
-        weight_norm = torch.div(
-            self.weight,
-            torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
-        sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
+#     def forward(self, features):
+#         eps = 1e-8
+#         batch_size, fea_size = features.shape
+#         input_norm, weight_norm = features.norm(
+#             2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
+#         input_norm = torch.div(
+#             features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
+#         weight_norm = torch.div(
+#             self.weight,
+#             torch.max(weight_norm, eps * torch.ones_like(weight_norm)))
+#         sim_mt = torch.mm(input_norm, weight_norm.transpose(0, 1))
 
-        return sim_mt
+#         return sim_mt
 
 
 class ArcMarginProduct(nn.Module):
@@ -206,8 +206,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
             freeze=False,
             tokens=True,
             tagger=[False, False],
-            concept_embeddings_pre=False,
-            st_parameters_pre=False):
+            concept_embeddings_pre=False):
 
         super().__init__(config)
         self.num_labels = num_labels_list
@@ -225,18 +224,19 @@ class CnlpBertForClassification(BertPreTrainedModel):
             concept_embeddings_pre=concept_embeddings_pre,
             path=config.name_or_path)
 
-        self.cosine_similarity_st = CosineLayerSt(
-            st_dim=(128, 768),
-            concept_embeddings_st_pre=st_parameters_pre,
-            path=config.name_or_path)
+        # self.cosine_similarity_st = CosineLayerSt(
+        #     st_dim=(128, 768),
+        #     concept_embeddings_st_pre=st_parameters_pre,
+        #     path=config.name_or_path)
 
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        # st_2_concept = np.load("data/umls/cui_st_matrix.npy").astype(
-        #     np.float32)
-        # st_2_concept = torch.from_numpy(st_2_concept)
-        # self.st_2_concept = st_2_concept
+        concept_st = np.load("data/umls/cui_st_matrix.npy").astype(np.float32)
+        self.concept_2_st = torch.from_numpy(concept_st)
+
+        self.st_transformation = torch.nn.MaxPool1d(kernel_size=434057,
+                                                    return_indices=False)
 
         # self.normalize = torch.nn.Softmax(dim=1)
 
@@ -320,8 +320,6 @@ class CnlpBertForClassification(BertPreTrainedModel):
         logits = []
 
         loss = None
-        
-        st_logits = []
 
         features_mention = self.feature_extractor_mention(
             outputs.hidden_states, event_tokens)
@@ -333,41 +331,46 @@ class CnlpBertForClassification(BertPreTrainedModel):
         #     outputs_mention.hidden_states, event_tokens_m)
         # features = 0.5 * features + 0.5 *features_mention
 
+        cui_logits_intermediate = self.cosine_similarity(features_mention)
+
+        st_logits_intermediate = cui_logits_intermediate.unsqueeze(
+            1) * self.concept_2_st.T
+
+        st_logits = self.st_transformation(st_logits_intermediate)
+
+        if self.training:
+            cui_logits_output = self.arcface(cui_logits_intermediate,
+                                             labels[1])
+            task_logits = cui_logits_output
+
+        else:
+            task_logits = cui_logits_intermediate
+
+        logits = [st_logits, task_logits]
+
         for task_ind, task_num_labels in enumerate(self.num_labels):
-            if task_ind == 0 and len(self.num_labels) == 2:
-                # task_logits = self.classifier(features_mention)
-                task_logits_st_intermediate = self.cosine_similarity_st(
-                    features_mention)
-                st_logits.append(task_logits_st_intermediate)
-                if self.training:
+            # if task_ind == 0 and len(self.num_labels) == 2:
+            #     # task_logits = self.classifier(features_mention)
+            #     task_logits_st_intermediate = self.cosine_similarity_st(
+            #         features_mention)
+            #     st_logits.append(task_logits_st_intermediate)
+            #     if self.training:
 
-                    task_logits_st_output = self.arcface(
-                        task_logits_st_intermediate, labels[task_ind])
-                    task_logits = task_logits_st_output
+            #         task_logits_st_output = self.arcface(
+            #             task_logits_st_intermediate, labels[task_ind])
+            #         task_logits = task_logits_st_output
 
-                else:
-                    task_logits = task_logits_st_intermediate
+            #     else:
+            #         task_logits = task_logits_st_intermediate
 
-            else:
-                task_logits_intermediate = self.cosine_similarity(
-                    features_mention)
+            # else:
+            #     task_logits_intermediate = self.cosine_similarity(
+            #         features_mention)
 
+            # cui_logits = torch.matmul(
+            #     st_logits[0], self.st_2_concept.T.to(st_logits[0].device))
 
-                # cui_logits = torch.matmul(
-                #     st_logits[0], self.st_2_concept.T.to(st_logits[0].device))
-
-                # task_logits_intermediate += 0.01 * cui_logits
-
-                if self.training:
-
-                    task_logits_output = self.arcface(task_logits_intermediate,
-                                                      labels[task_ind])
-                    task_logits = task_logits_output
-
-                else:
-                    task_logits = task_logits_intermediate
-
-            logits.append(task_logits)
+            # task_logits_intermediate += 0.01 * cui_logits
 
             if labels[task_ind] is not None:
                 loss_fct = CrossEntropyLoss()
@@ -375,7 +378,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 #                                    self.num_labels[task_ind])
                 labels_new = labels[task_ind].view(-1)
 
-                task_loss = loss_fct(task_logits, labels_new)
+                task_loss = loss_fct(logits[task_ind], labels_new)
 
                 if loss is None:
                     loss = task_loss
