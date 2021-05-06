@@ -49,11 +49,11 @@ class InputFeatures:
     input_ids: List[int]
     attention_mask: Optional[List[int]] = None
     token_type_ids: Optional[List[int]] = None
-    # input_ids_m: List[int] = None
-    # attention_mask_m: Optional[List[int]] = None
-    # token_type_ids_m: Optional[List[int]] = None
+    input_ids_c: List[int] = None
+    attention_mask_c: Optional[List[int]] = None
+    token_type_ids_c: Optional[List[int]] = None
     event_tokens: Optional[List[int]] = None
-    # event_tokens_m: Optional[List[int]] = None
+    event_tokens_c: Optional[List[int]] = None
     st_labels: List[Optional[Union[int, float, List[int]]]] = None
     concept_labels: List[Optional[Union[int, float, List[int]]]] = None
 
@@ -134,9 +134,9 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     if examples[0].text_b is None:
         sentences = [example.text_a for example in examples]
     else:
-        # sentences = [example.text_a for example in examples]
-        # sentences_mentions = [example.text_b for example in examples]
-        sentences = [(example.text_a, example.text_b) for example in examples]
+        sentences = [example.text_a for example in examples]
+        sentences_context = [example.text_b for example in examples]
+        # sentences = [(example.text_a, example.text_b) for example in examples]
 
     # sentences = [sent.split(" ") for sent in sentences]
 
@@ -152,29 +152,29 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     batch_encoding = tokenizer(
         sentences,
         padding=padding,
-        max_length=max_seq_length,
+        max_length=16,
         truncation=True,
         # We use this argument because the texts in our dataset are lists of words (with a label for each word).
     )
 
-    # batch_encoding_mentions = tokenizer(
-    #     sentences_mentions,
-    #     padding=padding,
-    #     max_length=16,
-    #     truncation=True,
-    #     # We use this argument because the texts in our dataset are lists of words (with a label for each word).
-    # )
+    batch_encoding_mentions = tokenizer(
+        sentences_context,
+        padding=padding,
+        max_length=max_seq_length,
+        truncation=True,
+        # We use this argument because the texts in our dataset are lists of words (with a label for each word).
+    )
 
     # This code has to solve the problem of properly setting labels for word pieces that do not actually need to be tagged.
 
     features = []
     for i in range(len(examples)):
         inputs = {k: batch_encoding[k][i] for k in batch_encoding}
-        # inputs_mention = {
-        #     k + "_m": batch_encoding_mentions[k][i]
-        #     for k in batch_encoding_mentions
-        # }
-        # inputs.update(inputs_mention)
+        inputs_context = {
+            k + "_c": batch_encoding_mentions[k][i]
+            for k in batch_encoding_mentions
+        }
+        inputs.update(inputs_context)
 
         try:
             event_start = inputs['input_ids'].index(event_start_ind)
@@ -194,23 +194,23 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         else:
             inputs['event_tokens'] = [1] * len(inputs['input_ids'])
 
-        # try:
-        #     event_start_m = inputs['input_ids_m'].index(event_start_ind)
-        # except:
-        #     event_start_m = -1
+        try:
+            event_start_m = inputs['input_ids_c'].index(event_start_ind)
+        except:
+            event_start_m = -1
 
-        # try:
-        #     event_end_m = inputs['input_ids_m'].index(event_end_ind)
-        # except:
-        #     event_end_m = len(inputs['input_ids_m']) - 1
+        try:
+            event_end_m = inputs['input_ids_c'].index(event_end_ind)
+        except:
+            event_end_m = len(inputs['input_ids_c']) - 1
 
-        # inputs['event_tokens_m'] = [0] * len(inputs['input_ids_m'])
-        # if event_start >= 0:
-        #     inputs['event_tokens_m'] = [0] * event_start_m + [1] * (
-        #         event_end_m - event_start_m +
-        #         1) + [0] * (len(inputs['input_ids_m']) - event_end_m - 1)
-        # else:
-        #     inputs['event_tokens_m'] = [1] * len(inputs['input_ids_m'])
+        inputs['event_tokens_c'] = [0] * len(inputs['input_ids_c'])
+        if event_start_m >= 0:
+            inputs['event_tokens_c'] = [0] * event_start_m + [1] * (
+                event_end_m - event_start_m +
+                1) + [0] * (len(inputs['input_ids_c']) - event_end_m - 1)
+        else:
+            inputs['event_tokens_c'] = [1] * len(inputs['input_ids_c'])
 
         if labels_concept[0] is not None:
             if len(label_lists) > 1:
