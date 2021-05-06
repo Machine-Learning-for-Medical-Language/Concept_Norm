@@ -100,7 +100,7 @@ class CosineLayer(nn.Module):
             weights_matrix = np.load(
                 os.path.join(path, "ontology+train+dev_con_embeddings.npy"))
             self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=False)
+                                    requires_grad=True)
             threshold_value = np.loadtxt(os.path.join(path, "threshold.txt"))
 
             self.threshold = Parameter(torch.tensor(threshold_value),
@@ -198,7 +198,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
             config,
             num_labels_list=[128, 434056],
             # num_labels_list=[434056],
-            mu1=0.1,
+            mu1=0.3,
             mu2=1,
             scale=20,
             margin=0.5,

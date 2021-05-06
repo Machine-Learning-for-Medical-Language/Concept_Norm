@@ -13,7 +13,7 @@ def main(model_path, save_path):
 
     config = AutoConfig.from_pretrained(
         model_path,
-        num_labels_list=[128, 434056],
+        num_labels_list=[16, 434056],
         finetuning_task=["st_joint", "cn_joint"])
     tokenizer = AutoTokenizer.from_pretrained(
         model_path,
@@ -28,7 +28,7 @@ def main(model_path, save_path):
     model = CnlpBertForClassification.from_pretrained(
         model_path,
         config=config,
-        num_labels_list=[128, 434056],
+        num_labels_list=[16, 434056],
         scale=45,
         margin=0.35,
         cache_dir=None,
@@ -36,14 +36,13 @@ def main(model_path, save_path):
         tokens=False,
         freeze=False,
         tagger=[False],
-        concept_embeddings_pre=False,
-        st_parameters_pre=False)
+        concept_embeddings_pre=False)
     model.bert.save_pretrained(save_path)
-    np.save(os.path.join(save_path, "classfication_weights"),
-            model.classifier.out_proj.weight.data)
+    # np.save(os.path.join(save_path, "classfication_weights"),
+    #         model.classifier.out_proj.weight.data)
 
-    np.save(os.path.join(save_path, "classfication_bias"),
-            model.classifier.out_proj.bias.data)
+    # np.save(os.path.join(save_path, "classfication_bias"),
+    #         model.classifier.out_proj.bias.data)
 
     np.savetxt(os.path.join(save_path, "threshold.txt"),
                [model.cosine_similarity.threshold.detach().numpy()])
