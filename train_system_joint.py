@@ -319,10 +319,10 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True,
+        use_fast=True)
         # revision=model_args.model_revision,
         # use_auth_token=True if model_args.use_auth_token else None,
-        additional_special_tokens=['<e>', '</e>'])
+        # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
 
@@ -339,7 +339,7 @@ def main():
         tagger=tagger,
         concept_embeddings_pre=training_args.concept_embeddings_pre)
 
-    model.resize_token_embeddings(len(tokenizer))
+    # model.resize_token_embeddings(len(tokenizer))
 
     train_batch_size = training_args.per_device_train_batch_size * max(
         1, training_args.n_gpu)
@@ -384,10 +384,10 @@ def main():
         # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
         # steps_per_epoch = int(total_steps // training_args.num_train_epochs)
         # training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
-    training_args.evaluation_strategy = IntervalStrategy.EPOCH
+    training_args.evaluation_strategy = IntervalStrategy.STEPS
     training_args.save_strategy = IntervalStrategy.EPOCH
-    training_args.logging_steps = 1000
-    # training_args.eval_steps = 100
+    training_args.logging_steps = 1
+    training_args.eval_steps = 60
     training_args.logging_strategy = IntervalStrategy.STEPS
     # elif training_args.do_eval:
     #     logger.info(

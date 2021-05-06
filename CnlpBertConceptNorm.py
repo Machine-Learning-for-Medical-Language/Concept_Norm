@@ -110,13 +110,13 @@ class CosineLayer(nn.Module):
 
         if concept_embeddings_pre:
             weights_matrix = np.load(
-                os.path.join(path, "ontology+train+dev_con_embeddings.npy"))
+                os.path.join(path, "concept_embeddings.npy"))
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=False)
             threshold_value = np.loadtxt(os.path.join(path, "threshold.txt"))
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=False)
+                                       requires_grad=True)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
@@ -178,8 +178,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
             config,
             num_labels_list=[128, 434056],
             # num_labels_list=[434056],
-            mu1=0.3,
-            mu2=1,
+            mu1=0.01,
+            mu2=0.001,
             scale=20,
             margin=0.5,
             layer=-1,
@@ -199,10 +199,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
             for param in self.bert.parameters():
                 param.requires_grad = False
 
-        self.cosine_similarity = CosineLayer(
-            concept_dim=(434056, 768),
-            concept_embeddings_pre=concept_embeddings_pre,
-            path=config.name_or_path)
+
 
         # self.cosine_similarity_st = CosineLayerSt(
         #     st_dim=(128, 768),
@@ -216,9 +213,9 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.concept_2_st = torch.from_numpy(concept_st)
 
         self.st_transformation = torch.nn.MaxPool1d(kernel_size=434057,
-                                                    return_indices=True)
+                                                    return_indices=False)
 
-        self.context_feature = Mlp(config, 64)
+        # self.context_feature = Mlp(config, 64)
 
         # self.normalize = torch.nn.Softmax(dim=1)
 
@@ -230,6 +227,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
 
         self.init_weights()
+        
+        self.cosine_similarity = CosineLayer(
+            concept_dim=(434056, 768),
+            concept_embeddings_pre=concept_embeddings_pre,
+            path=config.name_or_path)
 
         # Are we operating as a sconcepts_presentation
     def forward(
@@ -269,15 +271,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
                             output_hidden_states=True,
                             return_dict=True)
 
-        outputs_context = self.bert(input_ids_c,
-                                    attention_mask=attention_mask_c,
-                                    token_type_ids=token_type_ids_c,
-                                    position_ids=position_ids_c,
-                                    head_mask=head_mask,
-                                    inputs_embeds=inputs_embeds,
-                                    output_attentions=output_attentions,
-                                    output_hidden_states=True,
-                                    return_dict=True)
+        # outputs_context = self.bert(input_ids_c,
+        #                             attention_mask=attention_mask_c,
+        #                             token_type_ids=token_type_ids_c,
+        #                             position_ids=position_ids_c,
+        #                             head_mask=head_mask,
+        #                             inputs_embeds=inputs_embeds,
+        #                             output_attentions=output_attentions,
+        #                             output_hidden_states=True,
+        #                             return_dict=True)
 
         batch_size, seq_len = input_ids.shape
 
@@ -285,13 +287,13 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         logits = []
 
-        loss = None
+        loss = 0
 
         features_mention = self.feature_extractor_mention(
             outputs.hidden_states, event_tokens)
 
-        features_context = self.feature_extractor_mention(
-            outputs_context.hidden_states, event_tokens_c)
+        # features_context = self.feature_extractor_mention(
+        #     outputs_context.hidden_states, event_tokens_c)
 
         # if len(self.num_labels) > 1:
         #     feature_st = self.feature_extractor_st(outputs.hidden_states,
@@ -305,15 +307,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
         st_logits_intermediate = cui_logits_intermediate.unsqueeze(
             1) * self.concept_2_st.T.to(cui_logits_intermediate.device)
 
-        st_logits, cn_indexes = self.st_transformation(st_logits_intermediate)
+        st_logits = self.st_transformation(st_logits_intermediate)
 
         st_logits = st_logits.squeeze(-1)
 
-        context_feature = self.context_feature(features_context)
+        # context_feature = self.context_feature(features_context)
 
-        context_logits = self.classifier(context_feature)
+        # context_logits = self.classifier(context_feature)
 
-        context_score = st_logits * context_logits
+        # context_score = st_logits * context_logits
 
         if self.training:
             cui_logits_output = self.arcface(cui_logits_intermediate,
@@ -323,7 +325,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         else:
             task_logits = cui_logits_intermediate
 
-        logits = [context_score, task_logits]
+        logits = [st_logits, task_logits]
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
             # if task_ind == 0 and len(self.num_labels) == 2:
