@@ -384,10 +384,10 @@ def main():
         # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
         # steps_per_epoch = int(total_steps // training_args.num_train_epochs)
         # training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
-    training_args.evaluation_strategy = IntervalStrategy.STEPS
+    training_args.evaluation_strategy = IntervalStrategy.EPOCH
     training_args.save_strategy = IntervalStrategy.EPOCH
-    training_args.logging_steps = 1
-    training_args.eval_steps = 60
+    training_args.logging_steps = 500
+    # training_args.eval_steps = 60
     training_args.logging_strategy = IntervalStrategy.STEPS
     # elif training_args.do_eval:
     #     logger.info(

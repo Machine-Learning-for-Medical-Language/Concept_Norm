@@ -116,7 +116,7 @@ class CosineLayer(nn.Module):
             threshold_value = np.loadtxt(os.path.join(path, "threshold.txt"))
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=True)
+                                       requires_grad=False)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
@@ -178,8 +178,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
             config,
             num_labels_list=[128, 434056],
             # num_labels_list=[434056],
-            mu1=0.01,
-            mu2=0.001,
+            mu1=1,
+            mu2=0,
             scale=20,
             margin=0.5,
             layer=-1,
@@ -213,15 +213,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
         self.concept_2_st = torch.from_numpy(concept_st)
 
         self.st_transformation = torch.nn.MaxPool1d(kernel_size=434057,
-                                                    return_indices=False)
+                                                    return_indices=True)
 
-        # self.context_feature = Mlp(config, 64)
+        self.context_feature = Mlp(config, 64)
 
         # self.normalize = torch.nn.Softmax(dim=1)
 
         if len(self.num_labels) > 1:
 
-            self.classifier = ClassificationHead(config, 64,
+            self.classifier = ClassificationHead(config, 80,
                                                  self.num_labels[0])
 
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
@@ -271,15 +271,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
                             output_hidden_states=True,
                             return_dict=True)
 
-        # outputs_context = self.bert(input_ids_c,
-        #                             attention_mask=attention_mask_c,
-        #                             token_type_ids=token_type_ids_c,
-        #                             position_ids=position_ids_c,
-        #                             head_mask=head_mask,
-        #                             inputs_embeds=inputs_embeds,
-        #                             output_attentions=output_attentions,
-        #                             output_hidden_states=True,
-        #                             return_dict=True)
+        outputs_context = self.bert(input_ids_c,
+                                    attention_mask=attention_mask_c,
+                                    token_type_ids=token_type_ids_c,
+                                    position_ids=position_ids_c,
+                                    head_mask=head_mask,
+                                    inputs_embeds=inputs_embeds,
+                                    output_attentions=output_attentions,
+                                    output_hidden_states=True,
+                                    return_dict=True)
 
         batch_size, seq_len = input_ids.shape
 
@@ -292,8 +292,8 @@ class CnlpBertForClassification(BertPreTrainedModel):
         features_mention = self.feature_extractor_mention(
             outputs.hidden_states, event_tokens)
 
-        # features_context = self.feature_extractor_mention(
-        #     outputs_context.hidden_states, event_tokens_c)
+        features_context = self.feature_extractor_mention(
+            outputs_context.hidden_states, event_tokens_c)
 
         # if len(self.num_labels) > 1:
         #     feature_st = self.feature_extractor_st(outputs.hidden_states,
@@ -307,13 +307,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
         st_logits_intermediate = cui_logits_intermediate.unsqueeze(
             1) * self.concept_2_st.T.to(cui_logits_intermediate.device)
 
-        st_logits = self.st_transformation(st_logits_intermediate)
+        st_logits, cui_indexs = self.st_transformation(st_logits_intermediate)
 
         st_logits = st_logits.squeeze(-1)
 
-        # context_feature = self.context_feature(features_context)
+        context_feature = self.context_feature(features_context)
+        context_feature = torch.cat((st_logits,context_feature),1)
+        
 
-        # context_logits = self.classifier(context_feature)
+        context_logits = self.classifier(context_feature)
 
         # context_score = st_logits * context_logits
 
@@ -325,7 +327,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         else:
             task_logits = cui_logits_intermediate
 
-        logits = [st_logits, task_logits]
+        logits = [context_logits, task_logits]
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
             # if task_ind == 0 and len(self.num_labels) == 2:
