@@ -82,7 +82,7 @@ def generate_st_representations():
     matrix = np.eye(len(st_labels))[cui_st]
     print(matrix.shape)
     print(matrix[:2])
-    np.save("data/umls/cui_sg_matrix", matrix)
+    # np.save("data/umls/cui_sg_matrix", matrix)
 
 
 generate_st_representations()

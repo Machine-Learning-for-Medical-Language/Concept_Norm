@@ -155,8 +155,7 @@ class CnlpTrainingArguments(TrainingArguments):
     concept_embeddings_pre: Optional[bool] = field(
         default=False,
         metadata={
-            "help":
-            "Whether or not to load the pre-trained concept embeddings"
+            "help": "Whether or not to load the pre-trained concept embeddings"
         },
     )
 
@@ -314,25 +313,26 @@ def main():
         num_labels_list=num_labels,
         finetuning_task=data_args.task_name,
     )
+
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
         use_fast=True)
-        # revision=model_args.model_revision,
-        # use_auth_token=True if model_args.use_auth_token else None,
-        # additional_special_tokens=['<e>', '</e>'])
+    # revision=model_args.model_revision,
+    # use_auth_token=True if model_args.use_auth_token else None,
+    # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
 
-    model = CnlpBertForClassification.from_pretrained(
+    model = CnlpBertForClassification(
         model_name,
         config=config,
         num_labels_list=num_labels,
         scale=model_args.scale,
         margin=model_args.margin,
-        cache_dir=model_args.cache_dir,
+        # cache_dir=model_args.cache_dir,
         layer=model_args.layer,
         tokens=model_args.token,
         freeze=model_args.freeze,
@@ -381,14 +381,15 @@ def main():
     #     logger.warning(
     #         'Overwriting the value of logging steps based on provided evals_per_epoch argument'
     #     )
-        # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
-        # steps_per_epoch = int(total_steps // training_args.num_train_epochs)
-        # training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
+    # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
+    # steps_per_epoch = int(total_steps // training_args.num_train_epochs)
+    # training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
     training_args.evaluation_strategy = IntervalStrategy.EPOCH
     training_args.save_strategy = IntervalStrategy.EPOCH
     training_args.logging_steps = 500
-    # training_args.eval_steps = 60
+    training_args.eval_steps = 60
     training_args.logging_strategy = IntervalStrategy.STEPS
+
     # elif training_args.do_eval:
     #     logger.info(
     #         'Evaluation strategy not specified so evaluating every epoch')
@@ -408,7 +409,10 @@ def main():
                     preds = np.argmax(p.predictions[task_ind], axis=2)
                     # labels will be -100 where we don't need to tag
                 else:
-                    preds = np.argmax(p.predictions[task_ind], axis=1)
+                    if task_ind == 0:
+                        preds = np.argmax(p.predictions[task_ind], axis=1)
+                    else:
+                        preds = p.predictions[task_ind][:, 0]
 
                 if len(task_names) == 1:
                     labels = p.label_ids
@@ -510,39 +514,46 @@ def main():
                 eval_dataset)
 
             for task_ind, task_name in enumerate(data_args.task_name):
-                predictions_task_id_eval = np.argsort(
-                    predictions_tasks_eval[task_ind], axis=-1)
-                predictions_task_id_eval = predictions_task_id_eval[:, ::
-                                                                    -1][:, :30]
-
-                score_array_eval = [
-                    row[predictions_task_id_eval[i]]
-                    for i, row in enumerate(predictions_tasks_eval[task_ind])
-                ]
-
-                # predictions_task_eval = np.argmax(
-                #     predictions_tasks_eval[task_ind], axis=-1)
                 label_list_eval = cnlp_processors[task_name]().get_labels()
-                # true_predictions_eval = [
-                #     label_list_eval[prediction] for prediction, label in zip(
-                #         predictions_task_eval, labels_tasks_eval[task_ind])
-                #     if label != -100
-                # ]
+                if task_ind == 0:
+                    predictions_task_id_eval = np.argsort(
+                        predictions_tasks_eval[task_ind], axis=-1)
+                    predictions_task_id_eval = predictions_task_id_eval[:, ::
+                                                                        -1][:, :
+                                                                            10]
 
-                true_predictions_eval = [[
-                    label_list_eval[prediction] for prediction in predictions
-                ] for predictions, label in zip(predictions_task_id_eval,
-                                                labels_tasks_eval[task_ind])
-                                         if label != -100]
+                    score_array_eval = [
+                        row[predictions_task_id_eval[i]] for i, row in
+                        enumerate(predictions_tasks_eval[task_ind])
+                    ]
+
+
+
+                    true_predictions_eval = [[
+                        label_list_eval[prediction]
+                        for prediction in predictions
+                    ] for predictions, label in zip(
+                        predictions_task_id_eval, labels_tasks_eval[task_ind])
+                                             if label != -100]
+
+                    np.save(
+                        os.path.join(training_args.output_dir,
+                                     "%s_eval_predictions" % task_name),
+                        score_array_eval)
+
+                else:
+
+                    true_predictions_eval = predictions_tasks_eval[task_ind]
+                    true_predictions_eval = [[
+                        label_list_eval[prediction]
+                        for prediction in predictions
+                    ] for predictions, label in zip(
+                        true_predictions_eval, labels_tasks_eval[task_ind])
+                                             if label != -100]
 
                 output_eval_predictions_file = os.path.join(
                     training_args.output_dir,
                     "%s_eval_predictions.txt" % task_name)
-
-                np.save(
-                    os.path.join(training_args.output_dir,
-                                 "%s_eval_predictions" % task_name),
-                    score_array_eval)
 
                 if trainer.is_world_process_zero():
                     with open(output_eval_predictions_file, "w") as writer:
@@ -554,34 +565,40 @@ def main():
             test_dataset)
         for task_ind, task_name in enumerate(data_args.task_name):
             # predictions_task = np.argmax(predictions_tasks[task_ind], axis=-1)
-            predictions_tasks_id = np.argsort(predictions_tasks[task_ind],
-                                              axis=-1)
-            predictions_tasks_id = predictions_tasks_id[:, ::-1][:, :30]
+            label_list = cnlp_processors[task_name]().get_labels()
+            if task_ind == 0:
+                predictions_tasks_id = np.argsort(predictions_tasks[task_ind],
+                                                axis=-1)
+                predictions_tasks_id = predictions_tasks_id[:, ::-1][:, :10]
 
-            score_array = [
-                row[predictions_tasks_id[i]]
-                for i, row in enumerate(predictions_tasks[task_ind])
-            ]
+                score_array = [
+                    row[predictions_tasks_id[i]]
+                    for i, row in enumerate(predictions_tasks[task_ind])
+                ]
+
+
+                np.save(
+                    os.path.join(training_args.output_dir,
+                                "%s_test_predictions" % (task_name)), score_array)
+
+                true_predictions = [[
+                    label_list[prediction] for prediction in predictions
+                ] for predictions, label in zip(
+                    predictions_tasks_id, labels_tasks[task_ind]) if label != -100]
+            else:
+
+                true_predictions = predictions_tasks[task_ind]
+                true_predictions = [[
+                    label_list[prediction]
+                    for prediction in predictions
+                ] for predictions, label in zip(
+                    true_predictions, labels_tasks[task_ind])
+                                            if label != -100]
+
 
             output_test_predictions_file = os.path.join(
                 training_args.output_dir,
                 "%s_test_predictions.txt" % (task_name))
-            np.save(
-                os.path.join(training_args.output_dir,
-                             "%s_test_predictions" % (task_name)), score_array)
-
-            label_list = cnlp_processors[task_name]().get_labels()
-            # Remove ignored index (special tokens)
-            # true_predictions = [
-            #     label_list[prediction]
-            #     for prediction, label in zip(predictions_task, labels_tasks)
-            #     if label != -100
-            # ]
-
-            true_predictions = [[
-                label_list[prediction] for prediction in predictions
-            ] for predictions, label in zip(
-                predictions_tasks_id, labels_tasks[task_ind]) if label != -100]
 
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:

@@ -65,11 +65,16 @@ def generate_st_input(file_dir_path, file_path, output_path):
                 start = max(0, idx - 10)
                 end = min(idx + entity_idx + 10, len(tokens_new) - 1)
 
+                # sentence = tokens_new[start:idx] + entity_text + tokens_new[
+                #     idx + entity_idx:end]
+
                 sentence = tokens_new[start:idx] + entity_text + tokens_new[
                     idx + entity_idx:end]
-                input_new.append(
-                    [sg, cui, " ".join(entity_text),
-                     " ".join(sentence)])  ### , " ".join(sentence)
+
+                if "CUI-less" != cui:
+                    input_new.append(
+                        [sg, cui, " ".join(entity_text),
+                        " ".join(sentence)])  ### , " ".join(sentence)
 
                 # input_new.append([" ".join(sentence), cui])
                 # input_new.append([
@@ -82,15 +87,15 @@ def generate_st_input(file_dir_path, file_path, output_path):
 
 generate_st_input(
     "data/n2c2/train_dev/train_file_list.txt", "data/n2c2/processed/raw/train",
-    "data/n2c2/processed/input_joint/sentence_mention_st/train.tsv")
+    "data/n2c2/processed/input_joint/sentence_mention_st_nocuiless/train.tsv")
 
 generate_st_input(
     "data/n2c2/train_dev/dev_file_list.txt", "data/n2c2/processed/raw/dev",
-    "data/n2c2/processed/input_joint/sentence_mention_st/dev.tsv")
+    "data/n2c2/processed/input_joint/sentence_mention_st_nocuiless/dev.tsv")
 
 generate_st_input(
     "data/n2c2/test/test_file_list.txt", "data/n2c2/processed/raw/test",
-    "data/n2c2/processed/input_joint/sentence_mention_st/test.tsv")
+    "data/n2c2/processed/input_joint/sentence_mention_st_nocuiless/test.tsv")
 
 # generate_st_input("data/n2c2/processed/raw/dev",
 #                   "data/n2c2/processed/input_joint_mention/st_eval/dev.tsv")

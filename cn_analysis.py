@@ -164,6 +164,16 @@ def analyze_cn_topk(dev, st_file_path, cui_file_path, input_file_path):
         "data/n2c2/triplet_network/con_norm/ontology_concept_synonyms")
     cui_synonyms['CUI-less'] = ['CUI_less']
 
+    semantic_type_label = read.read_from_json("data/umls/umls_sg")
+
+    st_labels = []
+    for label in semantic_type_label:
+        label_new = '_'.join(label.split(' '))
+        st_labels.append(label_new)
+
+    st_labels.append('CUI_less')
+    st_idx = {item: idx for idx, item in enumerate(st_labels)}
+
     if dev == True:
         train_input = read.read_from_tsv(
             "data/n2c2/processed/input_joint/mention_sg/train.tsv")
@@ -180,10 +190,11 @@ def analyze_cn_topk(dev, st_file_path, cui_file_path, input_file_path):
 
     dev_pre_cui = read.textfile2list(cui_file_path + ".txt")
     dev_pre_cui = [item.split(" ") for item in dev_pre_cui]
-    dev_pre_score_cui = np.load(cui_file_path + ".npy")
+    # dev_pre_score_cui = np.load(cui_file_path + ".npy")
 
     dev_pre_st = read.textfile2list(st_file_path + ".txt")
-    dev_pre_st = [item.split(" ") for item in dev_pre_st]
+    dev_pre_st_idx = [[st_idx[sg] for sg in item.split(" ")]
+                      for item in dev_pre_st]
 
     dev_pre_score_st = np.load(st_file_path + ".npy")
 
@@ -217,11 +228,12 @@ def analyze_cn_topk(dev, st_file_path, cui_file_path, input_file_path):
             '_'.join(process.get_sg_cui(semantic_type, item).split(' '))
             for item in pre_cuis
         ]
+        pre_cuis_new = [pre_cuis[item] for item in dev_pre_st_idx[index]]
 
         if st_pre == st:
             count_st += 1
 
-        if cui in pre_cuis[:1]:
+        if cui in pre_cuis_new[:1]:
             count += 1
             # print(cui, st, mention)
             # print()
@@ -231,39 +243,42 @@ def analyze_cn_topk(dev, st_file_path, cui_file_path, input_file_path):
             # print()
             # print()
             # print()
-        if cui in pre_cuis[:3] and cui not in pre_cuis[:
-                                                       1] and cui != "CUI-less":
-            print("Real data:", mention, cui, st)
-            print(cui_synonyms[cui])
-            print()
+            # if cui in pre_cuis[:
+            #                        3] and cui not in pre_cuis[:
+            #                                                       1] and cui != "CUI-less":
+            #     print("Real data:", mention, cui, st)
+            #     print(cui_synonyms[cui])
+            #     print()
 
-            countnot += 1
-            st = [
-                process.get_sg_cui(semantic_type, item)
-                for item in pre_cuis[:2]
-            ]
-            st_0 = process.get_sg_cui(semantic_type, pre_cuis[0])
-            st_0_pre = dev_pre_st[index][0]
-            st_0_pre_score = dev_pre_score_st[index][0]
+            #     countnot += 1
+            #     st = [
+            #         process.get_sg_cui(semantic_type, item)
+            #         for item in pre_cuis[:2]
+            #     ]
+            #     st_0 = process.get_sg_cui(semantic_type, pre_cuis[0])
+            #     st_0_pre = dev_pre_st[index][0]
+            #     st_0_pre_score = dev_pre_score_st[index][0]
 
-            st_1 = process.get_sg_cui(semantic_type, pre_cuis[1])
-            st_1_pre = dev_pre_st[index][1]
-            st_1_pre_score = dev_pre_score_st[index][1]
+            #     st_1 = process.get_sg_cui(semantic_type, pre_cuis[1])
+            #     st_1_pre = dev_pre_st[index][1]
+            #     st_1_pre_score = dev_pre_score_st[index][1]
 
-            if len(list(set(st))) == 2:
-                countst += 1
+            #     if len(list(set(st))) == 2:
+            #         countst += 1
 
-            sts = [st_0, st_1]
-            sts_pre = [st_0_pre, st_1_pre]
-            sts_pre_score = [st_0_pre_score, st_1_pre_score]
+            #     sts = [st_0, st_1]
+            #     sts_pre = [st_0_pre, st_1_pre]
+            #     sts_pre_score = [st_0_pre_score, st_1_pre_score]
 
-            print("***prediction***")
-            for cui_idx, cui_pre in enumerate(pre_cuis[:2]):
-                score = dev_pre_score_cui[index][cui_idx]
-                print(cui_pre, score, st[cui_idx], cui_synonyms[cui_pre],
-                      sts_pre[cui_idx], sts_pre_score[cui_idx])
+            #     print("***prediction***")
+            #     for cui_idx, cui_pre in enumerate(pre_cuis[:2]):
+            #         # score = dev_pre_score_cui[index][cui_idx]
+            #         # print(cui_pre, score, st[cui_idx], cui_synonyms[cui_pre],
+            #         #       sts_pre[cui_idx], sts_pre_score[cui_idx])
+            #         print(cui_pre, st[cui_idx], cui_synonyms[cui_pre],
+            #               sts_pre[cui_idx], sts_pre_score[cui_idx])
 
-                print()
+            #         print()
             print("***Done***")
             print()
             print()
@@ -316,8 +331,9 @@ def analyze_cn_topk(dev, st_file_path, cui_file_path, input_file_path):
     #     #             #     print()
     #     #             #     print()
     #     #             #     print()
-    print("acc", count / count_all, "ambigupus", countst / countnot,
-          countst / count_all)
+    print("acc", count / count_all,
+          countst / count_all)  #, "ambigupus", countst / countnot,
+    #   countst / count_all)
     # print("cuiless", count_cuiless / count_cuiless_all)
 
     # print("seen", count_see / count_see_all, "unseen",
@@ -326,7 +342,7 @@ def analyze_cn_topk(dev, st_file_path, cui_file_path, input_file_path):
     # print("st", count_st / (count_all - count_cuiless))
 
 
-cui_folder_path = "data/n2c2/models/best_0_checkpoint-1477//"
+cui_folder_path = "data/n2c2/models/new4/"
 input_folder_path = "data/n2c2/processed/input_joint/umls+data_sg/"
 dev = True
 
