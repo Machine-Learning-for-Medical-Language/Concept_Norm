@@ -49,33 +49,37 @@ def main(model_path, model_type, sentence_corpus, output_path):
     # pickle.dump(d, open("file", 'w'), protocol=4)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=
-        'Generate sentence embedding for each sentence in the sentence corpus '
-    )
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         description=
+#         'Generate sentence embedding for each sentence in the sentence corpus '
+#     )
 
-    parser.add_argument('--model',
-                        help='the direcotory of the model',
-                        required=True)
+#     parser.add_argument('--model',
+#                         help='the direcotory of the model',
+#                         required=True)
 
-    parser.add_argument(
-        '--model_type',
-        help='the type of the model, sentence_bert or just bert',
-        required=True)
+#     parser.add_argument(
+#         '--model_type',
+#         help='the type of the model, sentence_bert or just bert',
+#         required=True)
 
-    parser.add_argument('--sentences',
-                        help='the direcotory of the sentence corpus',
-                        required=True)
+#     parser.add_argument('--sentences',
+#                         help='the direcotory of the sentence corpus',
+#                         required=True)
 
-    parser.add_argument('--output',
-                        help='the direcotory of the sentence corpus',
-                        required=True)
+#     parser.add_argument('--output',
+#                         help='the direcotory of the sentence corpus',
+#                         required=True)
 
-    args = parser.parse_args()
-    model_path = args.model
-    model_type = args.model_type
-    sentence_corpus = args.sentences
-    output_path = args.output
+# args = parser.parse_args()
+# model_path = args.model
+# model_type = args.model_type
+# sentence_corpus = args.sentences
+# output_path = args.output
+model_path = "/home/dongfangxu/Projects/models/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext/"
+model_type = "bert"
+sentence_corpus = "data/share/umls_concept/ontology_synonyms.tsv"
+output_path = "data/share/umls_concept/ontology+train+dev_syn_embeddings"
 
-    main(model_path, model_type, sentence_corpus, output_path)
+main(model_path, model_type, sentence_corpus, output_path)

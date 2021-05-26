@@ -320,50 +320,6 @@ class NerProcessor(SequenceProcessor):
 
 
 class StJointProcessor(CnlpProcessor):
-    # def _create_examples(self, lines, set_type, sequence=False):
-    #     test_mode = set_type == "test"
-    #     examples = []
-    #     for (i, line) in enumerate(lines):
-    #         guid = "%s-%s" % (set_type, i)
-    #         if test_mode:
-    #             # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
-    #             # we know which part of the line has the data.
-    #             if len(line) > 1:
-    #                 text_a = '\t'.join(line[2:])
-    #                 if sequence:
-    #                     st = line[0].split(' ')
-    #                     concept = line[1]
-
-    #                 else:
-    #                     st = line[0]
-    #                     concept = line[1]
-    #                 label = st + "+++" + concept
-    #             else:
-    #                 text_a = '\t'.join(line[:1])
-    #                 label = None
-    #         else:
-    #             if sequence:
-    #                 st = line[0].split(' ')
-    #                 concept = line[1]
-    #             else:
-    #                 st = line[0]
-    #                 concept = line[1]
-    #             label = st + "+++" + concept
-    #             text_a = '\t'.join(line[2:])
-
-    #         if set_type == 'train' and not sequence and label in self.downsampling:
-    #             dart = random.random()
-    #             # if downsampling is set to 0.1 then sample 10% of those instances.
-    #             # so if our randomly generated number is bigger than our downsampling rate
-    #             # we skip this instance.
-    #             if dart > self.downsampling[label]:
-    #                 continue
-    #         examples.append(
-    #             InputExample(guid=guid,
-    #                          text_a=text_a,
-    #                          text_b=None,
-    #                          label=label))
-    #     return examples
     def _create_examples(self, lines, set_type, sequence=False):
         test_mode = set_type == "test"
         examples = []
@@ -372,11 +328,10 @@ class StJointProcessor(CnlpProcessor):
             if test_mode:
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
-                if len(line) > 2:
-                    text_b = line[3]
-                    text_a = line[2]
+                if len(line) > 1:
+                    text_a = '\t'.join(line[2:])
                     if sequence:
-                        st = line[0]
+                        st = line[0].split(' ')
                         concept = line[1]
 
                     else:
@@ -388,14 +343,13 @@ class StJointProcessor(CnlpProcessor):
                     label = None
             else:
                 if sequence:
-                    st = line[0]
+                    st = line[0].split(' ')
                     concept = line[1]
                 else:
                     st = line[0]
                     concept = line[1]
                 label = st + "+++" + concept
-                text_a = line[2]
-                text_b = line[3]
+                text_a = '\t'.join(line[2:])
 
             if set_type == 'train' and not sequence and label in self.downsampling:
                 dart = random.random()
@@ -407,9 +361,56 @@ class StJointProcessor(CnlpProcessor):
             examples.append(
                 InputExample(guid=guid,
                              text_a=text_a,
-                             text_b=text_b,
+                             text_b=None,
                              label=label))
         return examples
+
+    # def _create_examples(self, lines, set_type, sequence=False):
+    #     test_mode = set_type == "test"
+    #     examples = []
+    #     for (i, line) in enumerate(lines):
+    #         guid = "%s-%s" % (set_type, i)
+    #         if test_mode:
+    #             # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
+    #             # we know which part of the line has the data.
+    #             if len(line) > 2:
+    #                 text_b = line[3]
+    #                 text_a = line[2]
+    #                 if sequence:
+    #                     st = line[0]
+    #                     concept = line[1]
+
+    #                 else:
+    #                     st = line[0]
+    #                     concept = line[1]
+    #                 label = st + "+++" + concept
+    #             else:
+    #                 text_a = '\t'.join(line[:1])
+    #                 label = None
+    #         else:
+    #             if sequence:
+    #                 st = line[0]
+    #                 concept = line[1]
+    #             else:
+    #                 st = line[0]
+    #                 concept = line[1]
+    #             label = st + "+++" + concept
+    #             text_a = line[2]
+    #             text_b = line[3]
+
+    #         if set_type == 'train' and not sequence and label in self.downsampling:
+    #             dart = random.random()
+    #             # if downsampling is set to 0.1 then sample 10% of those instances.
+    #             # so if our randomly generated number is bigger than our downsampling rate
+    #             # we skip this instance.
+    #             if dart > self.downsampling[label]:
+    #                 continue
+    #         examples.append(
+    #             InputExample(guid=guid,
+    #                          text_a=text_a,
+    #                          text_b=text_b,
+    #                          label=label))
+    #     return examples
 
     def get_one_score(self, results):
         return results['f1']
@@ -430,26 +431,30 @@ class StJointProcessor(CnlpProcessor):
 
     #     return st_labels
 
-    def get_labels(self):
-        import read_files as read
-        semantic_type_label = read.read_from_json("data/umls/umls_sg")
-
-        st_labels = []
-        for label in semantic_type_label:
-            label_new = '_'.join(label.split(' '))
-            st_labels.append(label_new)
-
-        st_labels.append('CUI_less')
-
-        return st_labels
-
     # def get_labels(self):
     #     import read_files as read
-    #     concept_labels = read.read_from_json(
-    #         "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-    #             'CUI-less'
-    #         ]
-    #     return concept_labels
+    #     semantic_type_label = read.read_from_json("data/umls/umls_sg")
+
+    #     st_labels = []
+    #     for label in semantic_type_label:
+    #         label_new = '_'.join(label.split(' '))
+    #         st_labels.append(label_new)
+
+    #     st_labels.append('CUI_less')
+
+    #     return st_labels
+
+    def get_labels(self):
+        import read_files as read
+
+        # concept_labels = read.read_from_json(
+        #     "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+        #         'CUI-less'
+        #     ]
+        concept_labels = read.read_from_json(
+            "data/share/umls/cui_umls_for_share") + ['CUI-less']
+
+        return concept_labels
 
 
 class CnJointProcessor(LabeledSentenceProcessor):

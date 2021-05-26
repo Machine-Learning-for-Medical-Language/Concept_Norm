@@ -47,34 +47,28 @@ class ClassificationHead(nn.Module):
         return x
 
 
-class Mlp(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.tranform = nn.Linear(config.hidden_size, config.hidden_size)
-        self.activation = nn.Tanh()
+# class Mlp(nn.Module):
+#     def __init__(self, config):
+#         super().__init__()
+#         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+#         self.tranform = nn.Linear(config.hidden_size, config.hidden_size)
+#         self.activation = nn.Tanh()
 
-    def forward(self, features, *kwargs):
-        x = self.dropout(features)
-        x = self.tranform(features)
-        x = self.activation(x)
-        return x
+#     def forward(self, features, *kwargs):
+#         x = self.dropout(features)
+#         x = self.tranform(features)
+#         x = self.activation(x)
+#         return x
 
 
 class RepresentationProjectionLayer(nn.Module):
-    def __init__(self,
-                 config,
-                 layer=-1,
-                 tokens=False,
-                 tagger=False,
-                 mean=False):
+    def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         # self.activation = nn.Tanh()
         self.layer_to_use = layer
         self.tokens = tokens
-        self.mean = mean
         self.tagger = tagger
         self.hidden_size = config.hidden_size
         if tokens and tagger:
@@ -96,23 +90,23 @@ class RepresentationProjectionLayer(nn.Module):
                 features[0].shape[0], self.hidden_size)
         elif self.tagger:
             x = features[self.layer_to_use]
-        elif self.mean:
-            token_ids = input_features['input_ids']
-            attention_mask = input_features['attention_mask']
-            meaningful_token_ids = [
-                i.index(3) for i in token_ids.cpu().numpy().tolist()
-            ]
-            for i in meaningful_token_ids:
-                attention_mask[:, i] = 0
-                attention_mask[:, i + 1:] = 0
-            token_embeddings = features[self.layer_to_use]
-            input_mask_expanded = attention_mask.unsqueeze(-1).expand(
-                token_embeddings.size()).float()
-            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded,
-                                       1)
-            sum_mask = input_mask_expanded.sum(1)
-            sum_mask = torch.clamp(sum_mask, min=1e-9)
-            x = sum_embeddings / sum_mask
+        # elif self.mean:
+        #     token_ids = input_features['input_ids']
+        #     attention_mask = input_features['attention_mask']
+        #     meaningful_token_ids = [
+        #         i.index(3) for i in token_ids.cpu().numpy().tolist()
+        #     ]
+        #     for i in meaningful_token_ids:
+        #         attention_mask[:, i] = 0
+        #         attention_mask[:, i + 1:] = 0
+        #     token_embeddings = features[self.layer_to_use]
+        #     input_mask_expanded = attention_mask.unsqueeze(-1).expand(
+        #         token_embeddings.size()).float()
+        #     sum_embeddings = torch.sum(token_embeddings * input_mask_expanded,
+        #                                1)
+        #     sum_mask = input_mask_expanded.sum(1)
+        #     sum_mask = torch.clamp(sum_mask, min=1e-9)
+        #     x = sum_embeddings / sum_mask
         else:
             # take <s> token (equiv. to [CLS])
             x = features[self.layer_to_use][:, 0, :]
@@ -134,9 +128,13 @@ class CosineLayer(nn.Module):
         super(CosineLayer, self).__init__()
 
         if concept_embeddings_pre:
+            # weights_matrix = np.load(
+            #     os.path.join(path,
+            #                  "concept_embeddings_share.npy")).astype(np.float32)
             weights_matrix = np.load(
-                os.path.join(path,
-                             "concept_embeddings.npy")).astype(np.float32)
+                "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
+            ).astype(np.float32)
+
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=False)
             threshold_value = np.loadtxt(os.path.join(
@@ -204,7 +202,7 @@ class CnlpBertForClassification(nn.Module):
             self,
             model_name="",
             config=None,
-            num_labels_list=[16, 434056],
+            num_labels_list=[16],
             # num_labels_list=[434056],
             mu1=1,
             mu2=0,
@@ -222,34 +220,23 @@ class CnlpBertForClassification(nn.Module):
         self.mu2 = mu2
         self.name_or_path = model_name
 
-        self.bert = BertModel.from_pretrained(self.name_or_path)
+        # self.bert = BertModel.from_pretrained(self.name_or_path)
 
-        if freeze:
-            for param in self.bert.parameters():
-                param.requires_grad = False
-        # self.bert.init_weights()
+        # if freeze:
+        #     for param in self.bert.parameters():
+        #         param.requires_grad = False
 
         self.feature_extractor_mention = RepresentationProjectionLayer(
             config, layer=layer, tokens=True, tagger=tagger[0])
 
-        self.feature_extractor_context = RepresentationProjectionLayer(
-            config, layer=layer, tokens=True, tagger=tagger[0], mean=False)
+        # self.feature_extractor_context = RepresentationProjectionLayer(
+        #     config, layer=layer, tokens=True, tagger=tagger[0])
 
-        # self.lstm = nn.LSTM(768 * 2,
-        #                     768,
-        #                     1,
-        #                     batch_first=True,
-        #                     bidirectional=True)
+        # concept_st = np.load("data/umls/cui_sg_matrix.npy").astype(np.float32)
+        # self.concept_2_st = torch.from_numpy(concept_st)
 
-        concept_st = np.load("data/umls/cui_sg_matrix.npy").astype(np.float32)
-        self.concept_2_st = torch.from_numpy(concept_st)
-
-        self.st_transformation = torch.nn.MaxPool1d(kernel_size=434057,
-                                                    return_indices=True)
-
-        # self.mlp = Mlp(config)
-
-        # self.normalize = torch.nn.Softmax(dim=1)
+        # self.st_transformation = torch.nn.MaxPool1d(kernel_size=434057,
+        #                                             return_indices=True)
 
         if len(self.num_labels) > 1:
 
@@ -258,23 +245,14 @@ class CnlpBertForClassification(nn.Module):
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
 
         self.bert_mention = BertModel.from_pretrained(self.name_or_path)
-        for param in self.bert_mention.parameters():
-            param.requires_grad = False
-        # self.bert_mention.init_weights()
+        if freeze:
+            for param in self.bert_mention.parameters():
+                param.requires_grad = False
 
         self.cosine_similarity = CosineLayer(
             concept_dim=(434056, 768),
             concept_embeddings_pre=concept_embeddings_pre,
             path=self.name_or_path)
-
-        self.prob = nn.Softmax(dim=1)
-
-        self.class_weights = torch.tensor([
-            333.3125, 1.5150568181818183, 0.4300806451612903,
-            0.5088740458015267, 3.9213235294117648, 0.17570506062203478, 1, 1,
-            23.808035714285715, 23.808035714285715, 1, 1, 11.904017857142858,
-            6.944010416666667, 0.2264351222826087, 2.6880040322580645
-        ])
 
         # Are we operating as a sconcepts_presentation
     def forward(
@@ -283,14 +261,14 @@ class CnlpBertForClassification(nn.Module):
         attention_mask=None,
         token_type_ids=None,
         position_ids=None,
-        input_ids_c=None,
-        attention_mask_c=None,
-        token_type_ids_c=None,
-        position_ids_c=None,
+        # input_ids_c=None,
+        # attention_mask_c=None,
+        # token_type_ids_c=None,
+        # position_ids_c=None,
         head_mask=None,
         inputs_embeds=None,
         event_tokens=None,
-        event_tokens_c=None,
+        # event_tokens_c=None,
         st_labels=None,
         concept_labels=None,
         output_attentions=None,
@@ -314,15 +292,15 @@ class CnlpBertForClassification(nn.Module):
                                     output_hidden_states=True,
                                     return_dict=True)
 
-        outputs_context = self.bert(input_ids_c,
-                                    attention_mask=attention_mask_c,
-                                    token_type_ids=token_type_ids_c,
-                                    position_ids=position_ids_c,
-                                    head_mask=head_mask,
-                                    inputs_embeds=inputs_embeds,
-                                    output_attentions=output_attentions,
-                                    output_hidden_states=True,
-                                    return_dict=True)
+        # outputs_context = self.bert(input_ids_c,
+        #                             attention_mask=attention_mask_c,
+        #                             token_type_ids=token_type_ids_c,
+        #                             position_ids=position_ids_c,
+        #                             head_mask=head_mask,
+        #                             inputs_embeds=inputs_embeds,
+        #                             output_attentions=output_attentions,
+        #                             output_hidden_states=True,
+        #                             return_dict=True)
 
         batch_size, seq_len = input_ids.shape
 
@@ -335,57 +313,56 @@ class CnlpBertForClassification(nn.Module):
         features_mention = self.feature_extractor_mention(
             outputs.hidden_states, event_tokens, None)
 
-        features_context = self.feature_extractor_context(
-            outputs_context.hidden_states, event_tokens_c, None)
+        # features_context = self.feature_extractor_context(
+        #     outputs_context.hidden_states, event_tokens_c, None)
 
-        cui_logits_intermediate = self.cosine_similarity(features_mention)
+        # cui_logits_intermediate = self.cosine_similarity(features_mention)
 
-        st_logits_intermediate = cui_logits_intermediate.unsqueeze(
-            1) * self.concept_2_st.T.to(cui_logits_intermediate.device)
-
-        st_logits, cui_indexs = self.st_transformation(st_logits_intermediate)
-
-        st_logits = st_logits.squeeze(-1)
-        cui_indexs = cui_indexs.squeeze(-1)
-
-        st_logits_values, st_logits_index = torch.topk(st_logits, 3)
-
-        st_logits_multihot = torch.sum(torch.eye(
-            self.num_labels[0])[st_logits_index],
-                                       dim=1)
-        st_logits_multihot = st_logits_multihot.to(st_logits.device)
-
-        context_logits = self.classifier(features_context)
-        # context_logits = self.prob(context_logits)
-        # context_score = 0.9* st_logits + 0.1 *context_logits
-        context_score = st_logits_multihot * context_logits
-
-        if self.bert.training:
-            cui_logits_output = self.arcface(cui_logits_intermediate,
-                                             labels[1])
-            task_logits = cui_logits_output
-
-        else:
-            task_logits = cui_logits_intermediate
-
-        logits = [context_score, task_logits]
+        # st_logits_intermediate = cui_logits_intermediate.unsqueeze(
+        #     1) * self.concept_2_st.T.to(cui_logits_intermediate.device)
+        # st_logits, cui_indexs = self.st_transformation(st_logits_intermediate)
+        # st_logits = st_logits.squeeze(-1)
+        # cui_indexs = cui_indexs.squeeze(-1)
+        # st_logits_values, st_logits_index = torch.topk(st_logits, 3)
+        # st_logits_multihot = torch.sum(torch.eye(
+        #     self.num_labels[0])[st_logits_index],
+        #                                dim=1)
+        # st_logits_multihot = st_logits_multihot.to(st_logits.device)
+        # context_logits = self.classifier(features_context)
+        # context_score = st_logits_multihot * context_logits
+        # if self.bert.training:
+        #     cui_logits_output = self.arcface(cui_logits_intermediate,
+        #                                      labels[1])
+        #     task_logits = cui_logits_output
+        # else:
+        #     task_logits = cui_logits_intermediate
+        # logits = [context_score, task_logits]
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
-            # if task_ind == 0 and len(self.num_labels) == 2:
-            #     # task_logits = self.classifier(features_mention)
-            #     task_logits_st_intermediate = self.cosine_similarity_st(
-            #         features_mention)
-            #     st_logits.append(task_logits_st_intermediate)
-            #     if self.training:
+            if task_ind == 0 and len(self.num_labels) == 2:
+                task_logits = self.classifier(features_mention)
+                # task_logits_st_intermediate = self.cosine_similarity_st(
+                #     features_mention)
+                # st_logits.append(task_logits_st_intermediate)
+                # if self.training:
 
-            #         task_logits_st_output = self.arcface(
-            #             task_logits_st_intermediate, labels[task_ind])
-            #         task_logits = task_logits_st_output
+                #     task_logits_st_output = self.arcface(
+                #         task_logits_st_intermediate, labels[task_ind])
+                #     task_logits = task_logits_st_output
+            else:
+                task_logits_intermediate = self.cosine_similarity(
+                    features_mention)
 
-            #     else:
-            #         task_logits = task_logits_st_intermediate
+                if self.training:
 
-            # logits.append(task_logits)
+                    task_logits_output = self.arcface(task_logits_intermediate,
+                                                      labels[task_ind])
+                    task_logits = task_logits_output
+
+                else:
+                    task_logits = task_logits_intermediate
+
+            logits.append(task_logits)
 
             if labels[task_ind] is not None:
                 # if task_ind == 0:
@@ -403,13 +380,13 @@ class CnlpBertForClassification(nn.Module):
                 else:
                     loss += mu[task_ind] * task_loss
 
-        if self.bert.training:
+        if self.bert_mention.training:
             return SequenceClassifierOutput(
                 loss=loss,
                 logits=logits,
-                hidden_states=outputs_context.hidden_states,
-                attentions=outputs_context.attentions,
+                hidden_states=outputs.hidden_states,
+                attentions=outputs.attentions,
             )
         else:
-            logits = [context_score, cui_indexs]
+            # logits = [context_score, cui_indexs]
             return SequenceClassifierOutput(loss=loss, logits=logits)

@@ -81,6 +81,7 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
     count_mention_recall = 0
 
     count_rules = 0
+    count_rules_sg = 0
 
     countnot = 0
     countst = 0
@@ -131,7 +132,7 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
             for item in dev_pre_context_sg_idx[index]
         ]
 
-        if cui in cuis_pre_context[:1]:
+        if cui in cuis_pre_context[:17]:
             count_mention_recall += 1
 
         if st in cui_s_sg_pre[:3]:
@@ -166,6 +167,7 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
 
         if cui_sg_pre_noclassifier[0] == "CUI-less":
             cui_pre = cuis_pre_mention[0]
+
         elif cui_sg_pre_noclassifier[0] == cui_sg_pre_noclassifier[1]:
             cui_pre = cuis_pre_mention[0]
 
@@ -180,6 +182,11 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
 
         if cui_pre == cui:
             count_rules += 1
+
+        st_pre = '_'.join(
+            process.get_sg_cui(semantic_type, cui_pre).split(' '))
+        if st_pre == st:
+            count_rules_sg += 1
 
         #     if st_pre == st:
         #         count_st += 1
@@ -294,24 +301,28 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
     conf_matrix_all = confusion_matrix(st_gold,
                                        st_mention_pre,
                                        labels=st_labels)
+
+
+
     conf_matrix_all_new = []
     conf_matrix_all_new.append([''] + st_labels)
     for idx, [score, label] in enumerate(zip(conf_matrix_all, st_labels)):
         conf_matrix_all_new.append([label] + list(score))
     print(conf_matrix_all_new)
 
-    read.save_in_tsv('./confusion_matrix_mention_dev.tsv',
-                     conf_matrix_all_new)
+    read.save_in_tsv('./confusion_matrix_mention_dev.tsv', conf_matrix_all_new)
 
-    print(count_all, count_rules, count_mention_recall,
-          count_mention_sg_recall, count_both, count_mention_no_context,
-          count_context_no_mention, count_neither)
+    print(count_all, count_rules_sg, "top k cuis after rules", count_rules,
+          "top k cuis using context to rank", count_mention_recall,
+          "top k sgs using context to rank", count_mention_sg_recall,
+          count_both, count_mention_no_context, count_context_no_mention,
+          count_neither)
 
 
 cui_folder_path = "data/n2c2/models/best_0_checkpoint-1477/"
-context_folder_path = "data/n2c2/models/context_classfication/"
+context_folder_path = "data/n2c2/models/mention_only/"
 input_folder_path = "data/n2c2/processed/input_joint/sentence_mention_st/"
-dev = True
+dev = False
 
 if dev == True:
     cui_file_path = cui_folder_path + "cn_joint_eval_predictions"

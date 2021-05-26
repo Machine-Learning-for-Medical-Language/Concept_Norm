@@ -28,7 +28,7 @@ def main(model_path, save_path):
     model = CnlpBertForClassification.from_pretrained(
         model_path,
         config=config,
-        num_labels_list=[16, 434056],
+        num_labels_list=[16],
         scale=45,
         margin=0.35,
         cache_dir=None,
@@ -37,7 +37,7 @@ def main(model_path, save_path):
         freeze=False,
         tagger=[False],
         concept_embeddings_pre=False)
-    model.bert.save_pretrained(save_path)
+    model.bert_mention.save_pretrained(save_path)
     # np.save(os.path.join(save_path, "classfication_weights"),
     #         model.classifier.out_proj.weight.data)
 
@@ -68,11 +68,11 @@ if __name__ == "__main__":
         '--save_path',
         help='the type of the model, sentence_bert or just bert',
         required=True)
-    
+
     args = parser.parse_args()
     model_path = args.model_path
     save_path = args.save_path
-    
+
     main(model_path, save_path)
 
 
