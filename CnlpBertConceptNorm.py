@@ -128,12 +128,12 @@ class CosineLayer(nn.Module):
         super(CosineLayer, self).__init__()
 
         if concept_embeddings_pre:
-            # weights_matrix = np.load(
-            #     os.path.join(path,
-            #                  "concept_embeddings_share.npy")).astype(np.float32)
             weights_matrix = np.load(
-                "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
-            ).astype(np.float32)
+                os.path.join(path,
+                             "ontology+train+dev_con_embeddings.npy")).astype(np.float32)
+            # weights_matrix = np.load(
+            #     "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
+            # ).astype(np.float32)
 
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=False)
