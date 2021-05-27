@@ -41,10 +41,10 @@ class Transformer(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
             cache_dir=cache_dir,
-            additional_special_tokens=['<e>', '</e>'],
+            # additional_special_tokens=['<e>', '</e>'],
             **tokenizer_args)
 
-        self.auto_model.resize_token_embeddings(len(self.tokenizer))
+        # self.auto_model.resize_token_embeddings(len(self.tokenizer))
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
