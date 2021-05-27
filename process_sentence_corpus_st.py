@@ -72,7 +72,11 @@ if __name__ == "__main__":
                         help='the direcotory of the sentence corpus',
                         required=True)
 
-
+    args = parser.parse_args()
+    model_path = args.model
+    model_type = args.model_type
+    sentence_corpus = args.sentences
+    output_path = args.output
 
 
     main(model_path, model_type, sentence_corpus, output_path)

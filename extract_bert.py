@@ -13,8 +13,8 @@ def main(model_path, save_path):
 
     config = AutoConfig.from_pretrained(
         model_path,
-        num_labels_list=[16, 434056],
-        finetuning_task=["st_joint", "cn_joint"])
+        num_labels_list=[88150],
+        finetuning_task=["st_joint"])
     tokenizer = AutoTokenizer.from_pretrained(
         model_path,
         cache_dir=None,
@@ -25,13 +25,12 @@ def main(model_path, save_path):
     )
     tokenizer.save_pretrained(save_path)
 
-    model = CnlpBertForClassification.from_pretrained(
+    model = CnlpBertForClassification(
         model_path,
         config=config,
-        num_labels_list=[16],
+        num_labels_list=[88150],
         scale=45,
         margin=0.35,
-        cache_dir=None,
         layer=-1,
         tokens=False,
         freeze=False,

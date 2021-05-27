@@ -136,12 +136,12 @@ class CosineLayer(nn.Module):
             # ).astype(np.float32)
 
             self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=False)
+                                    requires_grad=True)
             threshold_value = np.loadtxt(os.path.join(
                 path, "threshold.txt")).astype(np.float32)
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=False)
+                                       requires_grad=True)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
@@ -250,7 +250,7 @@ class CnlpBertForClassification(nn.Module):
                 param.requires_grad = False
 
         self.cosine_similarity = CosineLayer(
-            concept_dim=(434056, 768),
+            concept_dim=(88150,768),
             concept_embeddings_pre=concept_embeddings_pre,
             path=self.name_or_path)
 

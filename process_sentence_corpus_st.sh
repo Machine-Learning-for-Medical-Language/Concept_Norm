@@ -15,7 +15,7 @@ pwd; hostname; date
 
 module load singularity
 
-OUTPUT_DIR=/temp_work/ch223150/outputs/joint_model_new/0_ontology+train_all_e10_b400_seq16_1e4_sc45_m0.35/checkpoint-2954/
+OUTPUT_DIR=/temp_work/ch223150/outputs/share/ontology+train_all_e2_b400_seq16_5e5_sc45_m0.35/checkpoint-5110/
 OUTPUT_DIR_BERT=$OUTPUT_DIR/bert
 
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 extract_bert.py \
@@ -25,12 +25,12 @@ singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-pyt
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 process_sentence_corpus_st.py \
 --model $OUTPUT_DIR_BERT \
 --model_type bert \
---sentences /home/ch223150/projects/Concept_Norm/data/n2c2/triplet_network/con_norm_alllow/ontology_synonyms.tsv \
+--sentences /home/ch223150/projects/Concept_Norm/data/share/umls_concept/ontology_synonyms.tsv \
 --output $OUTPUT_DIR_BERT/ontology+train+dev_syn_embeddings
 
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 average_embeddings.py \
 --syn_path $OUTPUT_DIR_BERT/ontology+train+dev_syn_embeddings.npy \
---cui_path /home/ch223150/projects/Concept_Norm/data/n2c2/triplet_network/st_subpool/ontology_cui \
---cui_idx_path /home/ch223150/projects/Concept_Norm/data/n2c2/triplet_network/con_norm_alllow/ontology_concept_synonyms_idx \
+--cui_path /home/ch223150/projects/Concept_Norm/data/share/umls/cui_umls_for_share \
+--cui_idx_path /home/ch223150/projects/Concept_Norm/data/share/umls_concept/ontology_concept_synonyms_idx \
 --file_name $OUTPUT_DIR_BERT/ontology+train+dev_con_embeddings
 
