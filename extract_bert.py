@@ -1,6 +1,8 @@
-import os
 import argparse
+import os
+
 import numpy as np
+import torch
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 import read_files as read
@@ -11,10 +13,9 @@ def main(model_path, save_path):
 
     # model_path = "/home/dongfangxu/Projects/Concept_Norm/data/n2c2/models/checkpoint_2/"
 
-    config = AutoConfig.from_pretrained(
-        model_path,
-        num_labels_list=[88150],
-        finetuning_task=["st_joint"])
+    config = AutoConfig.from_pretrained(model_path,
+                                        num_labels_list=[88150],
+                                        finetuning_task=["st_joint"])
     tokenizer = AutoTokenizer.from_pretrained(
         model_path,
         cache_dir=None,
@@ -25,17 +26,20 @@ def main(model_path, save_path):
     )
     tokenizer.save_pretrained(save_path)
 
-    model = CnlpBertForClassification(
-        model_path,
-        config=config,
-        num_labels_list=[88150],
-        scale=45,
-        margin=0.35,
-        layer=-1,
-        tokens=False,
-        freeze=False,
-        tagger=[False],
-        concept_embeddings_pre=False)
+    model = CnlpBertForClassification(model_path,
+                                      config=config,
+                                      num_labels_list=[88150],
+                                      scale=45,
+                                      margin=0.35,
+                                      layer=-1,
+                                      tokens=False,
+                                      freeze=False,
+                                      tagger=[False],
+                                      concept_embeddings_pre=False)
+
+    pretrained_weights = torch.load(model_path + "pytorch_model.bin")
+    model.load_state_dict(pretrained_weights)
+
     model.bert_mention.save_pretrained(save_path)
     # np.save(os.path.join(save_path, "classfication_weights"),
     #         model.classifier.out_proj.weight.data)
@@ -52,6 +56,7 @@ def main(model_path, save_path):
     # print(threshold)
     t = np.loadtxt(os.path.join(save_path, "threshold.txt"))
     print(t)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -72,6 +77,7 @@ if __name__ == "__main__":
     model_path = args.model_path
     save_path = args.save_path
 
+    # model_path = "data/share/model/checkpoint-40880/"
+    # save_path = "data/share/model/checkpoint-40880/bert/"
+
     main(model_path, save_path)
-
-
