@@ -130,7 +130,7 @@ class CosineLayer(nn.Module):
         if concept_embeddings_pre:
             weights_matrix = np.load(
                 os.path.join(path,
-                             "ontology+train+dev_con_embeddings.npy")).astype(np.float32)
+                             "ontology+train_con_embeddings.npy")).astype(np.float32)
             # weights_matrix = np.load(
             #     "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
             # ).astype(np.float32)
@@ -141,7 +141,7 @@ class CosineLayer(nn.Module):
                 path, "threshold.txt")).astype(np.float32)
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=True)
+                                       requires_grad=False)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),

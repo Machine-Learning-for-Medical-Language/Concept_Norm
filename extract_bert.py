@@ -16,6 +16,9 @@ def main(model_path, save_path):
     config = AutoConfig.from_pretrained(model_path,
                                         num_labels_list=[88150],
                                         finetuning_task=["st_joint"])
+    
+    config.save_pretrained(save_path)
+    
     tokenizer = AutoTokenizer.from_pretrained(
         model_path,
         cache_dir=None,
@@ -38,6 +41,8 @@ def main(model_path, save_path):
                                       concept_embeddings_pre=False)
 
     pretrained_weights = torch.load(model_path + "pytorch_model.bin")
+    model.bert_mention.resize_token_embeddings(len(tokenizer))
+    
     model.load_state_dict(pretrained_weights)
 
     model.bert_mention.save_pretrained(save_path)
