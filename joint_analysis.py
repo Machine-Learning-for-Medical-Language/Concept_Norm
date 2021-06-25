@@ -19,7 +19,7 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
     semantic_type['CUI-less'] = ['CUI_less']
 
     cui_synonyms = read.read_from_json(
-        "data/n2c2/triplet_network/con_norm/ontology_concept_synonyms")
+        "data/n2c2/triplet_network/con_norm_alllow/ontology_concept_synonyms")
     cui_synonyms['CUI-less'] = ['CUI_less']
 
     semantic_type_label = read.read_from_json("data/umls/umls_sg")
@@ -171,17 +171,20 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
         elif cui_sg_pre_noclassifier[0] == cui_sg_pre_noclassifier[1]:
             cui_pre = cuis_pre_mention[0]
 
-        elif cui_sg_pre_noclassifier[0] in [
-                "Chemicals_&_Drugs", "Concepts_&_Ideas", "Devices",
-                "Phenomena", "Physiology"
-        ] and context_s_sg_pre[0] == "Procedures":
-            cui_pre = cuis_pre_context[0]
+        # elif cui_sg_pre_noclassifier[0] in [
+        #         "Chemicals_&_Drugs", "Concepts_&_Ideas", "Devices",
+        #         "Phenomena", "Physiology"
+        # ] and context_s_sg_pre[0] == "Procedures":
+        #     cui_pre = cuis_pre_context[0]
 
         else:
             cui_pre = cuis_pre_mention[0]
 
         if cui_pre == cui:
             count_rules += 1
+
+        else:
+            print(mention, cui)##, cui_synonyms[cui])
 
         st_pre = '_'.join(
             process.get_sg_cui(semantic_type, cui_pre).split(' '))
@@ -301,8 +304,6 @@ def analyze_cn_topk(dev, cui_file_path, cui_sg_file_path,
     conf_matrix_all = confusion_matrix(st_gold,
                                        st_mention_pre,
                                        labels=st_labels)
-
-
 
     conf_matrix_all_new = []
     conf_matrix_all_new.append([''] + st_labels)
