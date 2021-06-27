@@ -5,8 +5,8 @@
 #SBATCH --job-name=conorm             # Job name
 #SBATCH --mail-type=BEGIN,END,FAIL      # send and email when the job begins, ends or fails
 #SBATCH --mail-user=dongfang.xu@childrens.harvard.edu      # Email address to send the job status
-#SBATCH --output=log/exp_1%j.txt    # Name of the output file
-#SBATCH --error=log/exp_1%j.err
+#SBATCH --output=log/exp_%j.txt    # Name of the output file
+#SBATCH --error=log/exp_%j.err
 #SBATCH --nodes=1               # Number of gpu nodes
 #SBATCH --gres=gpu:Titan_RTX:1                # Number of gpu devices on one gpu node
 
@@ -16,15 +16,15 @@ pwd; hostname; date
 module load singularity
 
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 train_system_joint.py \
---model_name_or_path /temp_work/ch223150/outputs/joint_model/redo_continue_2_ontology+train_all_e10_b400_seq16_5e5_sc45_m0.35/checkpoint-17020/ \
+--model_name_or_path /temp_work/ch223150/outputs/share/0.65_fixed_concept_umls+train+dev_umls+data_umls+data_c4255_e20_b400_seq16_5e5_sc45_m0.35/checkpoint-13297/ \
 --data_dir /home/ch223150/projects/Concept_Norm/data/n2c2/joint_input/umls+data/ \
---output_dir /temp_work/ch223150/outputs/joint_model/redo_continue_2_ontology+train_all_e10_b400_seq16_5e5_sc45_m0.35/checkpoint-17020/ \
+--output_dir /temp_work/ch223150/outputs/share/0.65_fixed_concept_umls+train+dev_umls+data_umls+data_c4255_e20_b400_seq16_5e5_sc45_m0.35/checkpoint-13297/ \
 --task_name st_joint \
 --do_eval \
 --do_predict \
 --overwrite_output_dir true \
---overwrite_cache false \
---max_seq_length 32 \
+--overwrite_cache true \
+--max_seq_length 16 \
 --token true \
 --label_names st_labels \
 --pad_to_max_length true

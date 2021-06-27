@@ -130,7 +130,7 @@ class CosineLayer(nn.Module):
         if concept_embeddings_pre:
             weights_matrix = np.load(
                 os.path.join(path,
-                             "ontology+train_con_embeddings.npy")).astype(np.float32)
+                             "ontology+train_dev_con_embeddings.npy")).astype(np.float32)
             # weights_matrix = np.load(
             #     "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
             # ).astype(np.float32)
@@ -202,8 +202,8 @@ class CnlpBertForClassification(nn.Module):
             self,
             model_name="",
             config=None,
-            num_labels_list=[16],
-            # num_labels_list=[434056],
+            # num_labels_list=[16],
+            num_labels_list=[434056],
             mu1=1,
             mu2=0,
             scale=20,
@@ -250,9 +250,11 @@ class CnlpBertForClassification(nn.Module):
                 param.requires_grad = False
 
         self.cosine_similarity = CosineLayer(
-            concept_dim=(88150,768),
+            concept_dim=(434056,768),
             concept_embeddings_pre=concept_embeddings_pre,
             path=self.name_or_path)
+            
+        
 
         # Are we operating as a sconcepts_presentation
     def forward(
