@@ -65,24 +65,24 @@ def data_st():
 
 
 def combine_train_dev():
-    umls = read.read_from_tsv("data/share/umls/ontology.tsv")
+    umls = read.read_from_tsv("data/share/snomed/ontology.tsv")
 
     train = read.read_from_tsv("data/share/processed/data/train.tsv")
 
-    train_new = umls + train * 20
+    train_new = umls + train * 10
 
-    read.save_in_tsv("data/share/processed/umls+data/train.tsv", train_new)
+    read.save_in_tsv("data/share/processed/snomed+data/train.tsv", train_new)
 
 
 # combine_train_dev()
 
 
 def share_input():
-    ontology = read.read_from_tsv("data/share/umls/ontology.tsv")
+    ontology = read.read_from_tsv("data/share/snomed/ontology.tsv")
     train = read.read_from_tsv("data/share/processed/data/train.tsv")
-    dev = read.read_from_tsv("data/share/processed/data/dev.tsv")
+    # dev = read.read_from_tsv("data/share/processed/data/dev.tsv")
 
-    ontology = ontology + train + dev
+    ontology = ontology + train
 
     cuis = read.read_from_json("data/share/umls/cui_umls_for_share")
     norm_mention = {}
@@ -103,8 +103,8 @@ def share_input():
 
     print(len(cui_mention_idx))
 
-    read.save_in_tsv("data/share/umls_concept/ontology_synonyms.tsv", mentions)
-    read.save_in_json("data/share/umls_concept/ontology_concept_synonyms_idx",
+    read.save_in_tsv("data/share/snomed_concept_train/ontology_synonyms.tsv", mentions)
+    read.save_in_json("data/share/snomed_concept_train/ontology_concept_synonyms_idx",
                       cui_mention_idx)
 
     return mentions, cui_mention_idx

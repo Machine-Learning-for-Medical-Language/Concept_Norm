@@ -17,7 +17,7 @@ def analyze_cn_top1(dev, cui_file_path, input_file_path):
     semantic_type['CUI-less'] = ['CUI_less']
 
     cui_synonyms = read.read_from_json(
-        "data/n2c2/triplet_network/con_norm/ontology_concept_synonyms_dict")
+        "data/n2c2/triplet_network/con_norm_alllow/ontology_concept_synonyms")
     cui_synonyms['CUI-less'] = ['CUI_less']
 
     if dev == True:
