@@ -329,7 +329,7 @@ class StJointProcessor(CnlpProcessor):
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
                 if len(line) > 1:
-                    text_a = '\t'.join(line[2:])
+                    text_a = line[2]
                     if sequence:
                         st = line[0].split(' ')
                         concept = line[1]
@@ -349,7 +349,7 @@ class StJointProcessor(CnlpProcessor):
                     st = line[0]
                     concept = line[1]
                 label = st + "+++" + concept
-                text_a = '\t'.join(line[2:])
+                text_a = line[2]
 
             if set_type == 'train' and not sequence and label in self.downsampling:
                 dart = random.random()
