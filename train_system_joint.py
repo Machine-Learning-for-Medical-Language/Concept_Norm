@@ -520,6 +520,11 @@ def main():
                     predictions_tasks_eval[task_ind], axis=-1)
                 predictions_task_id_eval = predictions_task_id_eval[:, ::
                                                                     -1][:, :30]
+                
+                # predictions_task_id_eval = np.argmax(
+                #     predictions_tasks_eval[task_ind], axis=-1)
+
+                
 
                 score_array_eval = [
                     row[predictions_task_id_eval[i]]
@@ -536,6 +541,13 @@ def main():
                 ] for predictions, label in zip(predictions_task_id_eval,
                                                 labels_tasks_eval)
                                          if label != -100]
+                
+                # true_predictions_eval = [[
+                #     label_list_eval[predictions]
+                # ] for predictions, label in zip(predictions_task_id_eval,
+                #                                 labels_tasks_eval)
+                #                          if label != -100]
+                
 
                 # if task_ind == 0:
                 #     predictions_task_id_eval = np.argsort(
@@ -586,24 +598,29 @@ def main():
         for task_ind, task_name in enumerate(data_args.task_name):
 
             label_list = cnlp_processors[task_name]().get_labels()
-            predictions_tasks_id = np.argsort(predictions_tasks[task_ind],
-                                              axis=-1)
-            predictions_tasks_id = predictions_tasks_id[:, ::-1][:, :30]
 
-            score_array = [
-                row[predictions_tasks_id[i]]
-                for i, row in enumerate(predictions_tasks[task_ind])
-            ]
+            # predictions_tasks_id = np.argsort(predictions_tasks[task_ind],
+            #                                   axis=-1)
+            # predictions_tasks_id = predictions_tasks_id[:, ::-1][:, :30]
+            
+            predictions_tasks_id = np.argmax(
+                    predictions_tasks[task_ind], axis=-1)
+
+            # score_array = [
+            #     row[predictions_tasks_id[i]]
+            #     for i, row in enumerate(predictions_tasks[task_ind])
+            # ]
 
             output_test_predictions_file = os.path.join(
                 training_args.output_dir,
                 "%s_test_predictions.txt" % (task_name))
-            np.save(
-                os.path.join(training_args.output_dir,
-                             "%s_test_predictions" % (task_name)), score_array)
+                
+            # np.save(
+            #     os.path.join(training_args.output_dir,
+            #                  "%s_test_predictions" % (task_name)), score_array)
 
             true_predictions = [[
-                label_list[prediction] for prediction in predictions
+                label_list[predictions]
             ] for predictions, label in zip(predictions_tasks_id, labels_tasks)
                                 if label != -100]
 

@@ -254,11 +254,11 @@ class CnlpBertForClassification(nn.Module):
             concept_embeddings_pre=concept_embeddings_pre,
             path=self.name_or_path)
 
-        #### Prediction results #####
-        # pretrained_weights = torch.load(os.path.join(self.name_or_path,
-        #                                 "pytorch_model.bin"))
+        ### Prediction results #####
+        pretrained_weights = torch.load(os.path.join(self.name_or_path,
+                                        "pytorch_model.bin"))
 
-        # self.bert_mention.load_state_dict(pretrained_weights)
+        self.load_state_dict(pretrained_weights)
 
 
 
