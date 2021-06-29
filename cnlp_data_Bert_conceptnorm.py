@@ -54,8 +54,8 @@ class InputFeatures:
     token_type_ids_c: Optional[List[int]] = None
     event_tokens: Optional[List[int]] = None
     event_tokens_c: Optional[List[int]] = None
-    st_labels: List[Optional[Union[int, float, List[int]]]] = None
     concept_labels: List[Optional[Union[int, float, List[int]]]] = None
+
 
     def to_json_string(self):
         """Serializes this instance to a JSON string."""
@@ -83,18 +83,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     #         logger.info("Using output mode %s for task %s" %
     #                     (output_mode, task))
 
-    if len(label_lists) > 1:
-        st_label_map = {label: i for i, label in enumerate(label_lists[0])}
-
-        concept_label_map = {
-            label: i
-            for i, label in enumerate(label_lists[1])
-        }
-    else:
-        concept_label_map = {
-            label: i
-            for i, label in enumerate(label_lists[0])
-        }
+    concept_label_map = {label: i for i, label in enumerate(label_lists[0])}
 
     def label_from_example(example: InputExample, label_map: dict,
                            idx: int) -> Union[int, float, None]:
@@ -114,32 +103,12 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
 
         raise KeyError(output_mode)
 
-    if len(label_lists) > 1:
-        labels_st = [
-            label_from_example(example, st_label_map, 0)
-            for example in examples
-        ]
+    labels_concept = [
+        label_from_example(example, concept_label_map, 1)
+        for example in examples
+    ]
 
-        labels_concept = [
-            label_from_example(example, concept_label_map, 1)
-            for example in examples
-        ]
-
-    else:
-        labels_concept = [
-            label_from_example(example, concept_label_map, 1)
-            for example in examples
-        ]
-
-    if examples[0].text_b is None:
-        sentences = [example.text_a for example in examples]
-        sentences_context = None
-    else:
-        sentences = [example.text_a for example in examples]
-        sentences_context = [example.text_b for example in examples]
-        # sentences = [(example.text_a, example.text_b) for example in examples]
-
-    # sentences = [sent.split(" ") for sent in sentences]
+    sentences = [example.text_a for example in examples]
 
     if max_seq_length > tokenizer.model_max_length:
         logger.warn(
@@ -153,50 +122,16 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     batch_encoding = tokenizer(
         sentences,
         padding=padding,
-        max_length=16,
+        max_length=max_seq_length,
         truncation=True,
         # We use this argument because the texts in our dataset are lists of words (with a label for each word).
     )
-
-    if sentences_context is not None:
-        batch_encoding_context = tokenizer(
-            sentences_context,
-            padding=padding,
-            max_length=max_seq_length,
-            truncation=True,
-            # We use this argument because the texts in our dataset are lists of words (with a label for each word).
-        )
 
     # This code has to solve the problem of properly setting labels for word pieces that do not actually need to be tagged.
 
     features = []
     for i in range(len(examples)):
         inputs = {k: batch_encoding[k][i] for k in batch_encoding}
-
-        if sentences_context is not None:
-            inputs_context = {
-                k + "_c": batch_encoding_context[k][i]
-                for k in batch_encoding_context
-            }
-            inputs.update(inputs_context)
-
-            try:
-                event_start_m = inputs['input_ids_c'].index(event_start_ind)
-            except:
-                event_start_m = -1
-
-            try:
-                event_end_m = inputs['input_ids_c'].index(event_end_ind)
-            except:
-                event_end_m = len(inputs['input_ids_c']) - 1
-
-            inputs['event_tokens_c'] = [0] * len(inputs['input_ids_c'])
-            if event_start_m >= 0:
-                inputs['event_tokens_c'] = [0] * event_start_m + [1] * (
-                    event_end_m - event_start_m +
-                    1) + [0] * (len(inputs['input_ids_c']) - event_end_m - 1)
-            else:
-                inputs['event_tokens_c'] = [1] * len(inputs['input_ids_c'])
 
         try:
             event_start = inputs['input_ids'].index(event_start_ind)
@@ -216,18 +151,12 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         else:
             inputs['event_tokens'] = [1] * len(inputs['input_ids'])
 
-
-
         if labels_concept[0] is not None:
-            if len(label_lists) > 1:
-                feature = InputFeatures(**inputs,
-                                        st_labels=labels_st[i],
-                                        concept_labels=labels_concept[i])
-            else:
-                feature = InputFeatures(
-                    **inputs,
-                    st_labels=labels_concept[i],
-                )
+
+            feature = InputFeatures(
+                **inputs,
+                concept_labels=labels_concept[i],
+            )
         else:
             feature = InputFeatures(**inputs)
 

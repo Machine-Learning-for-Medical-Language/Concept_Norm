@@ -319,7 +319,7 @@ class NerProcessor(SequenceProcessor):
         # return tagger_labels
 
 
-class StJointProcessor(CnlpProcessor):
+class ConceptNormalizationProcessor(CnlpProcessor):
     def _create_examples(self, lines, set_type, sequence=False):
         test_mode = set_type == "test"
         examples = []
@@ -483,7 +483,7 @@ cnlp_processors = {
     'timex': TimexProcessor,
     'event': EventProcessor,
     'ner_test': NerProcessor,
-    'st_joint': StJointProcessor,
+    'concept_normalization': ConceptNormalizationProcessor,
     'cn_joint': CnJointProcessor,
 }
 
@@ -514,6 +514,6 @@ cnlp_output_modes = {
     'timex': tagging,
     'event': tagging,
     'ner_test': tagging,
-    'st_joint': classification,
+    'concept_normalization': classification,
     'cn_joint': classification,
 }
