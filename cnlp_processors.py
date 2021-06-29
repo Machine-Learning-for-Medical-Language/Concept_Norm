@@ -78,7 +78,7 @@ def cnlp_compute_metrics(task_name, preds, labels):
         return acc_and_f1(preds, labels)
     elif task_name == 'timex' or task_name == 'event' or task_name == "ner_test":
         return tagging_metrics(task_name, preds, labels)
-    elif task_name == 'st_joint' or task_name == 'cn_joint':
+    elif task_name == 'concept_normalization' or task_name == 'cn_joint':
         return acc_and_f1(preds, labels)
 
 
@@ -200,7 +200,7 @@ class AlinkProcessor(LabeledSentenceProcessor):
 
 class ContainsProcessor(LabeledSentenceProcessor):
     """ Processor for narrative container relation (THYME). Describes the contains relation status between the
-    two highlighted temporal entities (event or timex). NONE - no relation, CONTAINS - arg 1 contains arg2,
+    two highlighted temporal entities (event or timex). NONE - no relatlog/1_0.85_fixed_concept_umls+train+devion, CONTAINS - arg 1 contains arg2,
     CONTAINS-1 - arg 2 contains arg 1"""
     def get_labels(self):
         """See base class."""
@@ -447,12 +447,12 @@ class ConceptNormalizationProcessor(CnlpProcessor):
     def get_labels(self):
         import read_files as read
 
-        concept_labels = read.read_from_json(
-            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-                'CUI-less'
-            ]
         # concept_labels = read.read_from_json(
-        #     "data/share/umls/cui_umls_for_share") + ['CUI-less']
+        #     "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+        #         'CUI-less'
+        #     ]
+        concept_labels = read.read_from_json(
+            "data/share/umls/cui_umls_for_share") + ['CUI-less']
 
         return concept_labels
 

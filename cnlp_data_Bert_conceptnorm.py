@@ -102,7 +102,9 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
             return [label_map[label] for label in example.label]
 
         raise KeyError(output_mode)
-
+    
+    print(concept_label_map)
+    
     labels_concept = [
         label_from_example(example, concept_label_map, 1)
         for example in examples
