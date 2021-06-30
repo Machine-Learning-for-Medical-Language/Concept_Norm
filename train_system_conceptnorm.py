@@ -417,8 +417,10 @@ def main():
                 if len(task_names) == 1:
                     labels = p.label_ids
                 else:
-                    labels = p.labeCnlpBertForClassification = cnlp_compute_metrics(
-                        task_name, preds, labels)
+                    labels = p.label_ids[task_ind]
+
+                metrics[task_name] = cnlp_compute_metrics(
+                    task_name, preds, labels)
                 processor = cnlp_processors[task_name]()
                 task_scores.append(processor.get_one_score(metrics[task_name]))
 
