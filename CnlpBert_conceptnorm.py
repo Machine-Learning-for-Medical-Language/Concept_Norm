@@ -26,6 +26,8 @@ _TOKENIZER_FOR_DOC = "BertTokenizer"
 #     # See all RoBERTa models at https://huggingface.co/models?filter=roberta
 # ]
 
+def uniform_loss(x, t=2):
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
 
 class TokenClassificationHead(nn.Module):
     def __init__(self, config):
@@ -50,7 +52,7 @@ class ClassificationHead(nn.Module):
 class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
-        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.dropout = nn.Dropout(0.1)
         # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         # self.activation = nn.Tanh()
         self.layer_to_use = layer
@@ -79,9 +81,9 @@ class RepresentationProjectionLayer(nn.Module):
         else:
             # take <s> token (equiv. to [CLS])
             x = features[self.layer_to_use][:, 0, :]
-            # x = self.dropout(x)
-            # x = self.dense(x)
-            # x = self.activation(x)
+        x = self.dropout(x)
+        # x = self.dense(x)
+        # x = self.activation(x)
         return x
 
 
@@ -249,7 +251,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
         batch_size, seq_len = input_ids.shape
 
-        mu = [self.mu1, self.mu2]
+        # mu = [self.mu1, self.mu2]
 
         logits = []
 
@@ -284,10 +286,12 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
+                constraints_loss = uniform_loss(self.cosine_similarity.weight)
+
                 if loss is None:
                     loss = task_loss
                 else:
-                    loss += mu[task_ind] * task_loss
+                    loss += task_loss
 
         if self.bert_mention.training:
             return SequenceClassifierOutput(
