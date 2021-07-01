@@ -78,7 +78,7 @@ def cnlp_compute_metrics(task_name, preds, labels):
         return acc_and_f1(preds, labels)
     elif task_name == 'timex' or task_name == 'event' or task_name == "ner_test":
         return tagging_metrics(task_name, preds, labels)
-    elif task_name == 'concept_normalization' or task_name == 'cn_joint':
+    elif task_name == 'concept_normalization' or task_name == 'semantic_type':
         return acc_and_f1(preds, labels)
 
 
@@ -365,52 +365,148 @@ class ConceptNormalizationProcessor(CnlpProcessor):
                              label=label))
         return examples
 
-    # def _create_examples(self, lines, set_type, sequence=False):
-    #     test_mode = set_type == "test"
-    #     examples = []
-    #     for (i, line) in enumerate(lines):
-    #         guid = "%s-%s" % (set_type, i)
-    #         if test_mode:
-    #             # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
-    #             # we know which part of the line has the data.
-    #             if len(line) > 2:
-    #                 text_b = line[3]
-    #                 text_a = line[2]
-    #                 if sequence:
-    #                     st = line[0]
-    #                     concept = line[1]
+    def get_one_score(self, results):
+        return results['f1']
 
-    #                 else:
-    #                     st = line[0]
-    #                     concept = line[1]
-    #                 label = st + "+++" + concept
-    #             else:
-    #                 text_a = '\t'.join(line[:1])
-    #                 label = None
-    #         else:
-    #             if sequence:
-    #                 st = line[0]
-    #                 concept = line[1]
-    #             else:
-    #                 st = line[0]
-    #                 concept = line[1]
-    #             label = st + "+++" + concept
-    #             text_a = line[2]
-    #             text_b = line[3]
+    def get_labels(self):
+        import read_files as read
 
-    #         if set_type == 'train' and not sequence and label in self.downsampling:
-    #             dart = random.random()
-    #             # if downsampling is set to 0.1 then sample 10% of those instances.
-    #             # so if our randomly generated number is bigger than our downsampling rate
-    #             # we skip this instance.
-    #             if dart > self.downsampling[label]:
-    #                 continue
-    #         examples.append(
-    #             InputExample(guid=guid,
-    #                          text_a=text_a,
-    #                          text_b=text_b,
-    #                          label=label))
-    #     return examples
+        # concept_labels = read.read_from_json(
+        #     "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+        #         'CUI-less'
+        #     ]
+        concept_labels = read.read_from_json(
+            "data/share/umls/cui_umls_for_share") + ['CUI-less']
+
+        return concept_labels
+
+
+class SemanticTypeProcessor(CnlpProcessor):
+    def _create_examples(self, lines, set_type, sequence=False):
+        test_mode = set_type == "test"
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            if test_mode:
+                # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
+                # we know which part of the line has the data.
+                if len(line) > 1:
+                    text_a = line[3]
+                    if sequence:
+                        st = line[0].split(' ')
+                        concept = line[1]
+
+                    else:
+                        st = line[0]
+                        concept = line[1]
+                    label = st + "+++" + concept
+                else:
+                    text_a = '\t'.join(line[:3])
+                    label = None
+            else:
+                if sequence:
+                    st = line[0].split(' ')
+                    concept = line[1]
+                else:
+                    st = line[0]
+                    concept = line[1]
+                label = st + "+++" + concept
+                text_a = line[3]
+
+            if set_type == 'train' and not sequence and label in self.downsampling:
+                dart = random.random()
+                # if downsampling is set to 0.1 then sample 10% of those instances.
+                # so if our randomly generated number is bigger than our downsampling rate
+                # we skip this instance.
+                if dart > self.downsampling[label]:
+                    continue
+            examples.append(
+                InputExample(guid=guid,
+                             text_a=text_a,
+                             text_b=None,
+                             label=label))
+        return examples
+
+    def get_one_score(self, results):
+        return results['f1']
+
+    # def get_labels(self):
+    #     import read_files as read
+    #     semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
+
+    #     semantic_type_label = [
+    #         item.split('|')[3] for item in semantic_type_label
+    #     ]
+    #     st_labels = []
+    #     for label in semantic_type_label:
+    #         label_new = '_'.join(label.split(' '))
+    #         st_labels.append(label_new)
+
+    #     st_labels.append('CUI_less')
+
+    #     return st_labels
+
+    def get_labels(self):
+        import read_files as read
+        semantic_type_label = read.read_from_json("data/umls/umls_sg")
+
+        st_labels = []
+        for label in semantic_type_label:
+            label_new = '_'.join(label.split(' '))
+            st_labels.append(label_new)
+
+        st_labels.append('CUI_less')
+
+        return st_labels
+
+
+class ConceptNormalizationJointProcessor(CnlpProcessor):
+    def _create_examples(self, lines, set_type, sequence=False):
+        test_mode = set_type == "test"
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            if test_mode:
+                # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
+                # we know which part of the line has the data.
+                if len(line) > 2:
+                    text_b = line[3]
+                    text_a = line[2]
+                    if sequence:
+                        st = line[0]
+                        concept = line[1]
+
+                    else:
+                        st = line[0]
+                        concept = line[1]
+                    label = st + "+++" + concept
+                else:
+                    text_a = '\t'.join(line[:1])
+                    label = None
+            else:
+                if sequence:
+                    st = line[0]
+                    concept = line[1]
+                else:
+                    st = line[0]
+                    concept = line[1]
+                label = st + "+++" + concept
+                text_a = line[2]
+                text_b = line[3]
+
+            if set_type == 'train' and not sequence and label in self.downsampling:
+                dart = random.random()
+                # if downsampling is set to 0.1 then sample 10% of those instances.
+                # so if our randomly generated number is bigger than our downsampling rate
+                # we skip this instance.
+                if dart > self.downsampling[label]:
+                    continue
+            examples.append(
+                InputExample(guid=guid,
+                             text_a=text_a,
+                             text_b=text_b,
+                             label=label))
+        return examples
 
     def get_one_score(self, results):
         return results['f1']
@@ -447,12 +543,15 @@ class ConceptNormalizationProcessor(CnlpProcessor):
     def get_labels(self):
         import read_files as read
 
-        # concept_labels = read.read_from_json(
-        #     "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-        #         'CUI-less'
-        #     ]
+        ################ labels for n2c2 2019  ####################
         concept_labels = read.read_from_json(
-            "data/share/umls/cui_umls_for_share") + ['CUI-less']
+            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+                'CUI-less'
+            ]
+
+        ################  labels for share/clef################
+        # concept_labels = read.read_from_json(
+        #     "data/share/umls/cui_umls_for_share") + ['CUI-less']
 
         return concept_labels
 
@@ -484,6 +583,7 @@ cnlp_processors = {
     'event': EventProcessor,
     'ner_test': NerProcessor,
     'concept_normalization': ConceptNormalizationProcessor,
+    'semantic_type': SemanticTypeProcessor,
     'cn_joint': CnJointProcessor,
 }
 
@@ -515,5 +615,6 @@ cnlp_output_modes = {
     'event': tagging,
     'ner_test': tagging,
     'concept_normalization': classification,
+    'semantic_type': classification,
     'cn_joint': classification,
 }

@@ -56,7 +56,6 @@ class InputFeatures:
     event_tokens_c: Optional[List[int]] = None
     concept_labels: List[Optional[Union[int, float, List[int]]]] = None
 
-
     def to_json_string(self):
         """Serializes this instance to a JSON string."""
         return json.dumps(dataclasses.asdict(self)) + "\n"
@@ -102,13 +101,17 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
             return [label_map[label] for label in example.label]
 
         raise KeyError(output_mode)
-    
-    print(concept_label_map)
-    
-    labels_concept = [
-        label_from_example(example, concept_label_map, 1)
-        for example in examples
-    ]
+
+    if "normalization" in task:
+        labels_concept = [
+            label_from_example(example, concept_label_map, 1)
+            for example in examples
+        ]
+    else:
+        labels_concept = [
+            label_from_example(example, concept_label_map, 0)
+            for example in examples
+        ]
 
     sentences = [example.text_a for example in examples]
 
@@ -296,6 +299,7 @@ class ClinicalNlpDataset(Dataset):
                     features = cnlp_convert_examples_to_features(
                         examples,
                         tokenizer,
+                        task=args.task_name,
                         label_lists=self.label_lists,
                         output_mode=self.output_mode[task_ind],
                         pad_to_max_length=args.pad_to_max_length,
