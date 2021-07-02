@@ -286,7 +286,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                constraints_loss = uniform_loss(self.cosine_similarity.weight)
+                # constraints_loss = uniform_loss(self.cosine_similarity.weight)
 
                 if loss is None:
                     loss = task_loss

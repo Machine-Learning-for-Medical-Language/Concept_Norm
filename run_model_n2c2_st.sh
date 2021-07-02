@@ -16,21 +16,21 @@ pwd; hostname; date
 module load singularity
 
 
-OUTPUT_DIR=/temp_work/ch223150/outputs/n2c2/1n2c2_st_n2c2_i2b2
+OUTPUT_DIR=/temp_work/ch223150/outputs/n2c2/0.2dropout_n2c2_st_n2c2_mention
 
 singularity exec -B $TEMP_WORK --nv /temp_work/ch223150/image/hpc-ml_centos7-python3.7-transformers4.4.1.sif  python3.7 train_system_semantictype.py \
         --model_name_or_path /home/ch223150/projects/models/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext/ \
-        --data_dir /home/ch223150/projects/Concept_Norm/data/n2c2/joint_input/n2c2_i2b2/ \
+        --data_dir /home/ch223150/projects/Concept_Norm/data/n2c2/joint_input/sentence_mention_st_full/ \
         --output_dir $OUTPUT_DIR \
         --task_name semantic_type \
         --do_train \
         --do_eval \
         --do_predict \
-        --per_device_train_batch_size 64 \
+        --per_device_train_batch_size 32 \
         --num_train_epochs 10 \
         --overwrite_output_dir true \
         --overwrite_cache true \
-        --max_seq_length 128 \
+        --max_seq_length 16 \
         --token true \
         --label_names concept_labels \
         --pad_to_max_length true \

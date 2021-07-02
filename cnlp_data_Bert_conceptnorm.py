@@ -102,7 +102,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
 
         raise KeyError(output_mode)
 
-    if "normalization" in task:
+    if "concept_normalization" in task:
         labels_concept = [
             label_from_example(example, concept_label_map, 1)
             for example in examples
