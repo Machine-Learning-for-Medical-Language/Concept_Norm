@@ -26,8 +26,10 @@ _TOKENIZER_FOR_DOC = "BertTokenizer"
 #     # See all RoBERTa models at https://huggingface.co/models?filter=roberta
 # ]
 
+
 def uniform_loss(x, t=2):
     return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+
 
 class TokenClassificationHead(nn.Module):
     def __init__(self, config):
@@ -135,7 +137,7 @@ class CosineLayer(nn.Module):
         cui_less_score = torch.full((batch_size, 1), 1).to(
             features.device) * self.threshold.to(features.device)
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
-        return similarity_score
+        return similarity_score, weight_norm
 
 
 class ArcMarginProduct(nn.Module):
@@ -262,7 +264,8 @@ class CnlpBertForConceptNorm(nn.Module):
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
 
-            task_logits_intermediate = self.cosine_similarity(features_mention)
+            task_logits_intermediate, concept_embeddings_norm = self.cosine_similarity(
+                features_mention)
 
             if self.training:
 
@@ -286,7 +289,9 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                # constraints_loss = uniform_loss(self.cosine_similarity.weight)
+                constraints_loss = uniform_loss(concept_embeddings_norm)
+
+                task_loss += 0.001 * constraints_loss
 
                 if loss is None:
                     loss = task_loss
