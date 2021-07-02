@@ -110,7 +110,7 @@ class CosineLayer(nn.Module):
             # ).astype(np.float32)
 
             self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=True)
+                                    requires_grad=False)
             threshold_value = np.loadtxt(os.path.join(
                 path, "threshold.txt")).astype(np.float32)
 
@@ -137,7 +137,7 @@ class CosineLayer(nn.Module):
         cui_less_score = torch.full((batch_size, 1), 1).to(
             features.device) * self.threshold.to(features.device)
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
-        return similarity_score, weight_norm
+        return similarity_score, sim_mt, weight_norm
 
 
 class ArcMarginProduct(nn.Module):
@@ -264,10 +264,19 @@ class CnlpBertForConceptNorm(nn.Module):
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
 
-            task_logits_intermediate, concept_embeddings_norm = self.cosine_similarity(
+            task_logits_intermediate, task_logits_nocuiless, concept_embeddings_norm, = self.cosine_similarity(
                 features_mention)
 
             if self.training:
+
+                top_logits_values, top_logits_index = torch.topk(
+                    task_logits_nocuiless, 16)
+                top_logits_index = torch.flatten(top_logits_index)
+                # top_logits_multihot = torch.sum(
+                #     torch.eye(task_num_labels-1)[top_logits_index], dim=1)
+
+                concept_embeddings_norm = torch.index_select(
+                    concept_embeddings_norm, 0, top_logits_index)
 
                 task_logits_output = self.arcface(task_logits_intermediate,
                                                   labels[task_ind])
