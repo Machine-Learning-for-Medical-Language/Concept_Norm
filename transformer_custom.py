@@ -20,6 +20,7 @@ class Transformer(nn.Module):
     """
     def __init__(self,
                  model_name_or_path: str,
+                 start: bool = True,
                  max_seq_length: int = 128,
                  model_args: Dict = {},
                  cache_dir: Optional[str] = None,
@@ -38,13 +39,22 @@ class Transformer(nn.Module):
         self.auto_model = AutoModel.from_pretrained(model_name_or_path,
                                                     config=config,
                                                     cache_dir=cache_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name_or_path,
-            cache_dir=cache_dir,
-            # additional_special_tokens=['<e>', '</e>'],
-            **tokenizer_args)
-
-        # self.auto_model.resize_token_embeddings(len(self.tokenizer))
+        if start ==True:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name_or_path,
+                cache_dir=cache_dir,
+                additional_special_tokens=['<e>', '</e>'],
+                **tokenizer_args)
+    
+            self.auto_model.resize_token_embeddings(len(self.tokenizer))
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name_or_path,
+                cache_dir=cache_dir,
+                # additional_special_tokens=['<e>', '</e>'],
+                **tokenizer_args)
+    
+            # self.auto_model.resize_token_embeddings(len(self.tokenizer))
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""

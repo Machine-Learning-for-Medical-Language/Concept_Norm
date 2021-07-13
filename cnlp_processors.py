@@ -391,7 +391,7 @@ class SemanticTypeProcessor(CnlpProcessor):
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
                 if len(line) > 1:
-                    text_a = line[2]
+                    text_a = line[3]
                     if sequence:
                         st = line[0].split(' ')
                         concept = line[1]
@@ -401,7 +401,7 @@ class SemanticTypeProcessor(CnlpProcessor):
                         concept = line[1]
                     label = st + "+++" + concept
                 else:
-                    text_a = '\t'.join(line[:2])
+                    text_a = '\t'.join(line[:1])
                     label = None
             else:
                 if sequence:
@@ -411,7 +411,7 @@ class SemanticTypeProcessor(CnlpProcessor):
                     st = line[0]
                     concept = line[1]
                 label = st + "+++" + concept
-                text_a = line[2]
+                text_a = line[3]
 
             if set_type == 'train' and not sequence and label in self.downsampling:
                 dart = random.random()
@@ -544,14 +544,14 @@ class ConceptNormalizationJointProcessor(CnlpProcessor):
         import read_files as read
 
         ################ labels for n2c2 2019  ####################
-        concept_labels = read.read_from_json(
-            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-                'CUI-less'
-            ]
+        # concept_labels = read.read_from_json(
+        #     "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+        #         'CUI-less'
+        #     ]
 
         ################  labels for share/clef################
-        # concept_labels = read.read_from_json(
-        #     "data/share/umls/cui_umls_for_share") + ['CUI-less']
+        concept_labels = read.read_from_json(
+            "data/share/umls/cui_umls_for_share") + ['CUI-less']
 
         return concept_labels
 

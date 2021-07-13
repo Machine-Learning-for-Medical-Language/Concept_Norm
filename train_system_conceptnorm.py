@@ -137,7 +137,7 @@ class CnlpTrainingArguments(TrainingArguments):
         metadata={"help": "A space-separated list of labels"})
 
     eval_accumulation_steps: Optional[int] = field(
-        default=100,
+        default=32,
         metadata={
             "help":
             "Number of predictions steps to accumulate before moving the tensors to the CPU."
@@ -210,6 +210,13 @@ class ModelArguments:
             "help":
             "Freeze the encoder layers and only train the layer between the encoder and classification architecture. Probably works best with --token flag since [CLS] may not be well-trained for anything in particular."
         })
+    start: bool = field(
+        default=False,
+        metadata={
+            "help":
+            "Freeze the encoder layers and only train the layer between the encoder and classification architecture. Probably works best with --token flag since [CLS] may not be well-trained for anything in particular."
+        })
+    
     scale: float = field(
         default=30.0, metadata={"help": "scale value used for the arcface."})
     margin: float = field(
@@ -313,16 +320,26 @@ def main():
         num_labels_list=num_labels,
         finetuning_task=data_args.task_name,
     )
-
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name
-        if model_args.tokenizer_name else model_args.model_name_or_path,
-        cache_dir=model_args.cache_dir,
-        add_prefix_space=True,
-        use_fast=True)
-    # revision=model_args.model_revision,
-    # use_auth_token=True if model_args.use_auth_token else None,
-    # additional_special_tokens=['<e>', '</e>'])
+    if model_args.start ==True:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_args.tokenizer_name
+            if model_args.tokenizer_name else model_args.model_name_or_path,
+            cache_dir=model_args.cache_dir,
+            add_prefix_space=True,
+            use_fast=True,
+        # revision=model_args.model_revision,
+        # use_auth_token=True if model_args.use_auth_token else None,
+            additional_special_tokens=['<e>', '</e>'])
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_args.tokenizer_name
+            if model_args.tokenizer_name else model_args.model_name_or_path,
+            cache_dir=model_args.cache_dir,
+            add_prefix_space=True,
+            use_fast=True)
+        # revision=model_args.model_revision,
+        # use_auth_token=True if model_args.use_auth_token else None,
+            # additional_special_tokens=['<e>', '</e>'])
 
     pretrained = True
 
@@ -338,8 +355,8 @@ def main():
         freeze=model_args.freeze,
         tagger=tagger,
         concept_embeddings_pre=training_args.concept_embeddings_pre)
-
-    # model.bert_mention.resize_token_embeddings(len(tokenizer))
+    if model_args.start ==True:
+        model.bert_mention.resize_token_embeddings(len(tokenizer))
 
     train_batch_size = training_args.per_device_train_batch_size * max(
         1, training_args.n_gpu)
@@ -507,6 +524,8 @@ def main():
                         writer.write("%s = %s\n" % (key, value))
 
         eval_results.update(eval_result)
+        
+        # model..save_pretrained(save_path)
 
     if training_args.do_predict:
         if training_args.do_eval:

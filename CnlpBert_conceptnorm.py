@@ -95,38 +95,42 @@ from torch.nn import Parameter
 
 class CosineLayer(nn.Module):
     def __init__(self,
-                 concept_dim=(434056, 768),
+                 concept_dim=(88150, 768),
                  concept_embeddings_pre=False,
                  path=None):
         super(CosineLayer, self).__init__()
-
+        
+        self.dropout = nn.Dropout(0.1)
+        
         if concept_embeddings_pre:
             weights_matrix = np.load(
                 os.path.join(path,
-                             "ontology+train_dev_con_embeddings.npy")).astype(
+                             "ontology+train+dev_con_embeddings_share.npy")).astype(
                                  np.float32)
             # weights_matrix = np.load(
             #     "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
             # ).astype(np.float32)
 
             self.weight = Parameter(torch.from_numpy(weights_matrix),
-                                    requires_grad=False)
+                                    requires_grad=True)
             threshold_value = np.loadtxt(os.path.join(
-                path, "threshold.txt")).astype(np.float32)
+                path, "threshold_share.txt")).astype(np.float32)
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=False)
+                                       requires_grad=True)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
-            self.threshold = Parameter(torch.tensor(0.45), requires_grad=True)
+            torch.nn.init.xavier_uniform(self.weight)
+            self.threshold = Parameter(torch.tensor(0.25), requires_grad=True)
 
     def forward(self, features):
+        weight_dropout = self.dropout(self.weight)
         eps = 1e-8
         batch_size, fea_size = features.shape
         input_norm, weight_norm = features.norm(
-            2, dim=1, keepdim=True), self.weight.norm(2, dim=1, keepdim=True)
+            2, dim=1, keepdim=True), weight_dropout.norm(2, dim=1, keepdim=True)
         input_norm = torch.div(
             features, torch.max(input_norm, eps * torch.ones_like(input_norm)))
         weight_norm = torch.div(
@@ -185,7 +189,7 @@ class CnlpBertForConceptNorm(nn.Module):
             layer=-1,
             freeze=False,
             tokens=True,
-            tagger=[False, False],
+            tagger=[False],
             concept_embeddings_pre=False):
 
         super(CnlpBertForConceptNorm, self).__init__()
@@ -209,7 +213,7 @@ class CnlpBertForConceptNorm(nn.Module):
                 param.requires_grad = False
 
         self.cosine_similarity = CosineLayer(
-            concept_dim=(434056, 768),
+            concept_dim=(88150, 768),
             concept_embeddings_pre=concept_embeddings_pre,
             path=self.name_or_path)
 
@@ -266,7 +270,9 @@ class CnlpBertForConceptNorm(nn.Module):
 
             task_logits_intermediate, task_logits_nocuiless, concept_embeddings_norm, = self.cosine_similarity(
                 features_mention)
-
+            
+            constraints_loss = 0
+            
             if self.training:
 
                 top_logits_values, top_logits_index = torch.topk(
@@ -277,7 +283,10 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 concept_embeddings_norm = torch.index_select(
                     concept_embeddings_norm, 0, top_logits_index)
-
+                
+                constraints_loss = uniform_loss(concept_embeddings_norm)
+                
+                
                 task_logits_output = self.arcface(task_logits_intermediate,
                                                   labels[task_ind])
                 task_logits = task_logits_output
@@ -298,9 +307,9 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                constraints_loss = uniform_loss(concept_embeddings_norm)
+                
 
-                task_loss += 0.001 * constraints_loss
+                task_loss += 0.05 * constraints_loss
 
                 if loss is None:
                     loss = task_loss

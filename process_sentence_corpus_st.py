@@ -8,7 +8,7 @@ from Pooling_custom import Pooling as Pooling
 from transformer_custom import Transformer
 
 
-def main(model_path, model_type, sentence_corpus, output_path):
+def main(model_path, model_type, start, sentence_corpus, output_path):
 
     #### Read sentence courpus.  output: list of sentences ####
     sentences = read.read_from_tsv(sentence_corpus)
@@ -17,7 +17,7 @@ def main(model_path, model_type, sentence_corpus, output_path):
 
     if model_type.lower() in ["bert"]:
         # Load pretrained model
-        word_embedding_model = Transformer(model_path)
+        word_embedding_model = Transformer(model_path,start)
 
         pooling_model = Pooling(
             word_embedding_model.get_word_embedding_dimension(),
@@ -36,7 +36,7 @@ def main(model_path, model_type, sentence_corpus, output_path):
         #### load sentence BERT models and generate sentence embeddings ####
         embedder = SentenceTransformer(model_path)
 
-    embedder.max_seq_length = 64
+    embedder.max_seq_length = 16
     sentences_embedding = embedder.encode(sentences,
                                           batch_size=1024,
                                           show_progress_bar=True,
@@ -71,12 +71,17 @@ if __name__ == "__main__":
     parser.add_argument('--output',
                         help='the direcotory of the sentence corpus',
                         required=True)
+    
+    parser.add_argument('--start',
+                        help='the direcotory of the sentence corpus',default=False,
+                        action='store_true')
 
     args = parser.parse_args()
     model_path = args.model
     model_type = args.model_type
     sentence_corpus = args.sentences
     output_path = args.output
+    start = args.start
 
 
-    main(model_path, model_type, sentence_corpus, output_path)
+    main(model_path, model_type, start, sentence_corpus, output_path)

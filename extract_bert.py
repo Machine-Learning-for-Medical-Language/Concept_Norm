@@ -6,7 +6,7 @@ import torch
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 import read_files as read
-from CnlpBertConceptNorm import CnlpBertForClassification
+from CnlpBert_conceptnorm import CnlpBertForConceptNorm
 
 
 def main(model_path, save_path):
@@ -16,6 +16,7 @@ def main(model_path, save_path):
     config = AutoConfig.from_pretrained(model_path,
                                         num_labels_list=[88150],
                                         finetuning_task=["st_joint"])
+    config.vocab_size = 30524
     
     config.save_pretrained(save_path)
     
@@ -24,21 +25,23 @@ def main(model_path, save_path):
         cache_dir=None,
         add_prefix_space=True,
         use_fast=True,
+        additional_special_tokens=['<e>', '</e>'],
         # revision=model_args.model_revision,
         # use_auth_token=True if model_args.use_auth_token else None,
     )
     tokenizer.save_pretrained(save_path)
 
-    model = CnlpBertForClassification(model_path,
+    model = CnlpBertForConceptNorm(model_path,
                                       config=config,
                                       num_labels_list=[88150],
                                       scale=45,
                                       margin=0.35,
                                       layer=-1,
-                                      tokens=False,
+                                      tokens=True,
                                       freeze=False,
                                       tagger=[False],
                                       concept_embeddings_pre=False)
+    model.bert_mention.resize_token_embeddings(len(tokenizer))                        
 
     pretrained_weights = torch.load(model_path + "pytorch_model.bin")
     model.bert_mention.resize_token_embeddings(len(tokenizer))
@@ -52,14 +55,14 @@ def main(model_path, save_path):
     # np.save(os.path.join(save_path, "classfication_bias"),
     #         model.classifier.out_proj.bias.data)
 
-    np.savetxt(os.path.join(save_path, "threshold.txt"),
+    np.savetxt(os.path.join(save_path, "threshold_share.txt"),
                [model.cosine_similarity.threshold.detach().numpy()])
 
     # BERT = AutoModel.from_pretrained("data/bert")
     # weights = model.cosine_similarity.weight.detach().numpy()
     # threshold = model.cosine_similarity.threshold.detach().numpy()
     # print(threshold)
-    t = np.loadtxt(os.path.join(save_path, "threshold.txt"))
+    t = np.loadtxt(os.path.join(save_path, "threshold_share.txt"))
     print(t)
 
 
