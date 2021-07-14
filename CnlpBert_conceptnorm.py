@@ -56,7 +56,7 @@ class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
         super().__init__()
         self.dropout1 = nn.Dropout(0.1)
-        self.dropout2 = nn.Dropout(0.1)
+        self.dropout2 = nn.Dropout(0.2)
         # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         # self.activation = nn.Tanh()
         self.layer_to_use = layer
@@ -103,7 +103,7 @@ class CosineLayer(nn.Module):
                  path=None):
         super(CosineLayer, self).__init__()
 
-        self.dropout = nn.Dropout(0.1)
+        # self.dropout = nn.Dropout(0.1)
         self.cos = nn.CosineSimilarity(dim=-1)
 
         if concept_embeddings_pre:
@@ -122,7 +122,7 @@ class CosineLayer(nn.Module):
                 os.path.join(path, "threshold_share.txt")).astype(np.float32)
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=True)
+                                       requires_grad=False)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
@@ -327,7 +327,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                task_loss += 2 * metric_loss
+                task_loss += 0.1 * metric_loss
 
                 if loss is None:
                     loss = task_loss
