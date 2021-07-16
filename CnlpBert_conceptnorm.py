@@ -219,11 +219,12 @@ class CnlpBertForConceptNorm(nn.Module):
         self.concept_st_label = torch.tensor(
             read.read_from_json("data/share/umls/st_idx"))
 
-        # self.miner = miners.MultiSimilarityMiner(epsilon=0.05)
+        self.miner = miners.MultiSimilarityMiner(epsilon=0.1)
         # self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
+        self.loss = losses.TripletMarginLoss()
         # self.loss =  losses.IntraPairVarianceLoss()
 
-        self.classifier = ClassificationHead(config, num_labels=13)
+        # self.classifier = ClassificationHead(config, num_labels=13)
 
         #### Prediction results #####
         # pretrained_weights = torch.load(os.path.join(self.name_or_path,
@@ -281,7 +282,7 @@ class CnlpBertForConceptNorm(nn.Module):
             sg_task_loss = 0
             loss_fct = CrossEntropyLoss()
             if self.training:
-                top_n = 16
+                top_n = 8
                 top_logits_values, top_logits_index = torch.topk(
                     task_logits_nocuiless, top_n)
 
@@ -291,23 +292,23 @@ class CnlpBertForConceptNorm(nn.Module):
                 concept_embeddings_norm = torch.index_select(
                     concept_embeddings_norm, 0, top_logits_index)
 
-                features_mention_norm = F.normalize(features_mention)
+                # features_mention_norm = F.normalize(features_mention)
 
-                query_embeddings = torch.cat(
-                    [features_mention_norm, concept_embeddings_norm], dim=0)
+                # query_embeddings = torch.cat(
+                #     [features_mention_norm, concept_embeddings_norm], dim=0)
 
-                metric_label = torch.cat([labels[task_ind], top_logits_index])
+                # metric_label = torch.cat([labels[task_ind], top_logits_index])
                 st_labels = torch.index_select(
                     self.concept_st_label.to(top_logits_index.device), 0,
-                    metric_label)
+                    top_logits_index)
 
-                # hard_pairs = self.miner(query_embeddings, metric_label)
-                # metric_loss = self.loss(query_embeddings, metric_label,
-                #                         hard_pairs)
+                hard_pairs = self.miner(concept_embeddings_norm, st_labels)
+                sg_task_loss = self.loss(concept_embeddings_norm, st_labels,
+                                         hard_pairs) * 8
 
-                sg_logits = self.classifier(query_embeddings)
+                # sg_logits = self.classifier(concept_embeddings_norm)
 
-                sg_task_loss = loss_fct(sg_logits, st_labels)
+                # sg_task_loss = loss_fct(sg_logits, st_labels)
 
                 task_logits_output = self.arcface(task_logits_intermediate,
                                                   labels[task_ind])
