@@ -220,11 +220,11 @@ class CnlpBertForConceptNorm(nn.Module):
             read.read_from_json("data/share/umls/st_idx"))
 
         self.miner = miners.MultiSimilarityMiner(epsilon=0.1)
-        # self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
-        self.loss = losses.TripletMarginLoss()
+        self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
+        # self.loss = losses.TripletMarginLoss()
         # self.loss =  losses.IntraPairVarianceLoss()
 
-        # self.classifier = ClassificationHead(config, num_labels=13)
+        # self.classifier = ClassificationHead(config, num_labels=88151)
 
         #### Prediction results #####
         # pretrained_weights = torch.load(os.path.join(self.name_or_path,
@@ -329,7 +329,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                task_loss += 0.8 * sg_task_loss
+                task_loss += 0.0 * sg_task_loss
 
                 if loss is None:
                     loss = task_loss
