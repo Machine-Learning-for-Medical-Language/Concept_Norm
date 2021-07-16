@@ -130,7 +130,7 @@ class CosineLayer(nn.Module):
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
             torch.nn.init.xavier_uniform(self.weight)
-            self.threshold = Parameter(torch.tensor(0.15), requires_grad=True)
+            self.threshold = Parameter(torch.tensor(0.25), requires_grad=True)
 
     def forward(self, features):
         batch_size, fea_size = features.shape
@@ -328,7 +328,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                task_loss += 1.0 * sg_task_loss
+                task_loss += 0.8 * sg_task_loss
 
                 if loss is None:
                     loss = task_loss
