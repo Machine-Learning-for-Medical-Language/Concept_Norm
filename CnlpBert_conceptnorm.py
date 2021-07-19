@@ -87,11 +87,11 @@ class RepresentationProjectionLayer(nn.Module):
         else:
             # take <s> token (equiv. to [CLS])
             x = features[self.layer_to_use][:, 0, :]
-        x1 = self.dropout1(x)
+        x = self.dropout1(x)
         # x2 = self.dropout2(x)
         # x = self.dense(x)
         # x = self.activation(x)
-        return x1
+        return x
 
 
 import torch.nn.functional as F
@@ -101,6 +101,7 @@ from torch.nn import Parameter
 class CosineLayer(nn.Module):
     def __init__(self,
                  concept_dim=(88150, 768),
+                #  concept_dim=(434056, 768),
                  concept_embeddings_pre=False,
                  path=None):
         super(CosineLayer, self).__init__()
@@ -114,6 +115,13 @@ class CosineLayer(nn.Module):
                     path,
                     "ontology+train+dev_con_embeddings_share.npy")).astype(
                         np.float32)
+            
+            # weights_matrix = np.load(
+            #     os.path.join(
+            #         path,
+            #         "ontology+train+dev_con_embeddings_n2c2.npy")).astype(
+            #             np.float32)
+            
             # weights_matrix = np.load(
             #     "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
             # ).astype(np.float32)
@@ -122,6 +130,9 @@ class CosineLayer(nn.Module):
                                     requires_grad=True)
             threshold_value = np.loadtxt(
                 os.path.join(path, "threshold_share.txt")).astype(np.float32)
+            
+            # threshold_value = np.loadtxt(
+            #     os.path.join(path, "threshold_n2c2.txt")).astype(np.float32)
 
             self.threshold = Parameter(torch.tensor(threshold_value),
                                        requires_grad=False)
@@ -130,6 +141,7 @@ class CosineLayer(nn.Module):
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
             torch.nn.init.xavier_uniform(self.weight)
+            # torch.nn.init.normal_(self.weight, mean=0.0, std=0.02)
             self.threshold = Parameter(torch.tensor(0.25), requires_grad=True)
 
     def forward(self, features):
@@ -211,22 +223,27 @@ class CnlpBertForConceptNorm(nn.Module):
             for param in self.bert_mention.parameters():
                 param.requires_grad = False
 
-        # self.arcface = ArcMarginProduct(s=scale,
-        #                                 m=margin,
-        #                                 easy_margin=True)
+        self.arcface = ArcMarginProduct(s=scale,
+                                        m=margin,
+                                        easy_margin=True)
+        self.cosine_similarity = CosineLayer(
+            concept_dim=(88150, 768),
+            concept_embeddings_pre=concept_embeddings_pre,
+            path=self.name_or_path)
+        
         # self.cosine_similarity = CosineLayer(
-        #     concept_dim=(88150, 768),
+        #     concept_dim=(434056, 768),
         #     concept_embeddings_pre=concept_embeddings_pre,
         #     path=self.name_or_path)
 
-        # self.concept_st_label = torch.tensor(
-        #     read.read_from_json("data/share/umls/st_idx"))
+        self.concept_st_label = torch.tensor(
+            read.read_from_json("data/share/umls/st_idx"))
 
-        # self.miner = miners.MultiSimilarityMiner(epsilon=0.1)
-        # self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
+        self.miner = miners.MultiSimilarityMiner(epsilon=0.1)
+        self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
         # self.loss = losses.TripletMarginLoss()
 
-        self.classifier = ClassificationHead(config, num_labels=88151)
+        # self.classifier = ClassificationHead(config, num_labels=434057)
 
         #### Prediction results #####
         # pretrained_weights = torch.load(os.path.join(self.name_or_path,
@@ -278,44 +295,46 @@ class CnlpBertForConceptNorm(nn.Module):
 
         for task_ind, task_num_labels in enumerate(self.num_labels):
 
-            # task_logits_intermediate, task_logits_nocuiless, concept_embeddings_norm = self.cosine_similarity(
-            #     features_mention)
+            task_logits_intermediate, task_logits_nocuiless, concept_embeddings_norm = self.cosine_similarity(
+                features_mention)
+                
+            # logits.append(task_logits_intermediate*20)
 
-            task_logits_intermediate = self.classifier(features_mention)
-            logits.append(task_logits_intermediate)
+            # task_logits_intermediate = self.classifier(features_mention)
+            # logits.append(task_logits_intermediate)
 
             sg_task_loss = 0
             loss_fct = CrossEntropyLoss()
 
-            # if self.training:
-            #     top_n = 8
-            #     top_logits_values, top_logits_index = torch.topk(
-            #         task_logits_nocuiless, top_n)
+            if self.training:
+                top_n = 16
+                top_logits_values, top_logits_index = torch.topk(
+                    task_logits_nocuiless, top_n)
 
-            #     top_logits_index = torch.flatten(top_logits_index)
-            #     top_logits_values = torch.flatten(top_logits_values)
+                top_logits_index = torch.flatten(top_logits_index)
+                top_logits_values = torch.flatten(top_logits_values)
 
-            #     concept_embeddings_norm = torch.index_select(
-            #         concept_embeddings_norm, 0, top_logits_index)
-
-
-            #     st_labels = torch.index_select(
-            #         self.concept_st_label.to(top_logits_index.device), 0,
-            #         top_logits_index)
-
-            #     hard_pairs = self.miner(concept_embeddings_norm, st_labels)
-            #     sg_task_loss = self.loss(concept_embeddings_norm, st_labels,
-            #                              hard_pairs) * 8
+                concept_embeddings_norm = torch.index_select(
+                    concept_embeddings_norm, 0, top_logits_index)
 
 
-            #     task_logits_output = self.arcface(task_logits_intermediate,
-            #                                       labels[task_ind])
-            #     task_logits = task_logits_output
+                st_labels = torch.index_select(
+                    self.concept_st_label.to(top_logits_index.device), 0,
+                    top_logits_index)
 
-            # else:
-            #     task_logits = task_logits_intermediate
+                hard_pairs = self.miner(concept_embeddings_norm, st_labels)
+                sg_task_loss = self.loss(concept_embeddings_norm, st_labels,
+                                         hard_pairs) * top_n
 
-            # logits.append(task_logits)
+
+                task_logits_output = self.arcface(task_logits_intermediate,
+                                                  labels[task_ind])
+                task_logits = task_logits_output
+
+            else:
+                task_logits = task_logits_intermediate
+
+            logits.append(task_logits)
 
             if labels[task_ind] is not None:
                 # if task_ind == 0:
@@ -327,7 +346,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                task_loss += 0.0 * sg_task_loss
+                task_loss += 0.1 * sg_task_loss
 
                 if loss is None:
                     loss = task_loss
