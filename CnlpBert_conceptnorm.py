@@ -227,8 +227,7 @@ class CnlpBertForConceptNorm(nn.Module):
             concept_dim=(88150, 768),
             concept_embeddings_pre=concept_embeddings_pre,
             path=self.name_or_path)
-            
-        
+
         ###### N2c2 ###########################
 
         # self.cosine_similarity = CosineLayer(
@@ -237,21 +236,16 @@ class CnlpBertForConceptNorm(nn.Module):
         #     path=self.name_or_path)
         # self.classifier = ClassificationHead(config, num_labels=12)  ###need to change
 
-
-
         ################## Share ####################
         self.concept_st_label = torch.tensor(
             read.read_from_json("data/share/umls/st_idx")[:-1])
         self.classifier = ClassificationHead(config, num_labels=12)
-        
-        
+
         ######  triplet loss #######
         # self.miner = miners.MultiSimilarityMiner(epsilon=0.1)
         # self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
         # self.loss = losses.TripletMarginLoss()
 
-        
-        
         #### Prediction results #####
         # pretrained_weights = torch.load(os.path.join(self.name_or_path,
         #                                 "pytorch_model.bin"))
@@ -310,7 +304,8 @@ class CnlpBertForConceptNorm(nn.Module):
             # task_logits_intermediate = self.classifier(features_mention)
             # logits.append(task_logits_intermediate)
 
-            sg_task_loss = 0
+            embeddings_st_loss = 0
+            mention_st_loss = 0
             loss_fct = CrossEntropyLoss()
 
             if self.training:
@@ -331,26 +326,23 @@ class CnlpBertForConceptNorm(nn.Module):
                 # hard_pairs = self.miner(concept_embeddings_norm, st_labels)
                 # sg_task_loss = self.loss(concept_embeddings_norm, st_labels,
                 #                          hard_pairs) * top_n
-                
+
                 labels_no_cuiless = labels[task_ind][labels[task_ind] != 88150]
                 mention_st_label_no_cuiless = torch.index_select(
-                    self.concept_st_label.to(top_logits_index.device), 0,
+                    self.concept_st_label.to(labels_no_cuiless.device), 0,
                     labels_no_cuiless)
-                features_norm_no_cuiless = features_norm[labels[task_ind] != 88150]
-                
+                features_norm_no_cuiless = features_norm[
+                    labels[task_ind] != 88150]
+
                 mention_st_logtis = self.classifier(features_norm_no_cuiless)
 
-                sg_task_loss = loss_fct(
-                    mention_st_logtis, mention_st_label_no_cuiless)
-                
+                mention_st_loss = loss_fct(mention_st_logtis,
+                                           mention_st_label_no_cuiless)
 
+                embeddings_st_logtis = self.classifier(concept_embeddings_norm)
 
-                st_logtis = self.classifier(concept_embeddings_norm)
-
-                sg_task_loss = loss_fct(
-                    st_logtis, self.concept_st_label.to(st_logtis.device))
-                
-                
+                embeddings_st_loss = loss_fct(
+                    embeddings_st_logtis, self.concept_st_label.to(embeddings_st_logtis.device))
 
                 task_logits_output = self.arcface(task_logits_intermediate,
                                                   labels[task_ind])
@@ -371,7 +363,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
 
-                task_loss += 1.0 * sg_task_loss
+                task_loss += 1.0 * (mention_st_loss + embeddings_st_loss)
 
                 if loss is None:
                     loss = task_loss
