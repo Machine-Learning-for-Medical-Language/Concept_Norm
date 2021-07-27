@@ -33,6 +33,7 @@ def main(model_path, save_path):
 
     model = CnlpBertForConceptNorm(model_path,
                                       config=config,
+                                    #   num_labels_list=[88150],
                                       num_labels_list=[88150],
                                       scale=45,
                                       margin=0.35,
@@ -49,20 +50,20 @@ def main(model_path, save_path):
     model.load_state_dict(pretrained_weights)
 
     model.bert_mention.save_pretrained(save_path)
-    # np.save(os.path.join(save_path, "classfication_weights"),
-    #         model.classifier.out_proj.weight.data)
+    np.save(os.path.join(save_path, "concept_embeddings"),
+            model.cosine_similarity.weight.detach().numpy())
 
     # np.save(os.path.join(save_path, "classfication_bias"),
     #         model.classifier.out_proj.bias.data)
 
-    np.savetxt(os.path.join(save_path, "threshold_share.txt"),
+    np.savetxt(os.path.join(save_path, "threshold_n2c2.txt"),
                [model.cosine_similarity.threshold.detach().numpy()])
 
     # BERT = AutoModel.from_pretrained("data/bert")
     # weights = model.cosine_similarity.weight.detach().numpy()
     # threshold = model.cosine_similarity.threshold.detach().numpy()
     # print(threshold)
-    t = np.loadtxt(os.path.join(save_path, "threshold_share.txt"))
+    t = np.loadtxt(os.path.join(save_path, "threshold_n2c2.txt"))
     print(t)
 
 

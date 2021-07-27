@@ -371,12 +371,12 @@ class ConceptNormalizationProcessor(CnlpProcessor):
     def get_labels(self):
         import read_files as read
 
-        # concept_labels = read.read_from_json(
-        #     "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-        #         'CUI-less'
-        #     ]
         concept_labels = read.read_from_json(
-            "data/share/umls/cui_umls_for_share") + ['CUI-less']
+            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
+                'CUI-less'
+            ]
+        # concept_labels = read.read_from_json(
+        #     "data/share/umls/cui_umls_for_share") + ['CUI-less']
 
         return concept_labels
 

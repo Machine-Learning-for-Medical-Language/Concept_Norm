@@ -111,17 +111,17 @@ class CosineLayer(nn.Module):
         self.cos = nn.CosineSimilarity(dim=-1)
 
         if concept_embeddings_pre:
-            weights_matrix = np.load(
-                os.path.join(
-                    path,
-                    "ontology+train+dev_con_embeddings_share.npy")).astype(
-                        np.float32)
-
             # weights_matrix = np.load(
             #     os.path.join(
             #         path,
-            #         "ontology+train+dev_con_embeddings_n2c2.npy")).astype(
+            #         "ontology+train+dev_con_embeddings_share.npy")).astype(
             #             np.float32)
+
+            weights_matrix = np.load(
+                os.path.join(
+                    path,
+                    "ontology+train+dev_con_embeddings_n2c2.npy")).astype(
+                        np.float32)
 
             # weights_matrix = np.load(
             #     "data/share/umls_concept/ontology+train+dev_con_embeddings.npy"
@@ -129,21 +129,21 @@ class CosineLayer(nn.Module):
 
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=True)
-            threshold_value = np.loadtxt(
-                os.path.join(path, "threshold_share.txt")).astype(np.float32)
-
             # threshold_value = np.loadtxt(
-            #     os.path.join(path, "threshold_n2c2.txt")).astype(np.float32)
+            #     os.path.join(path, "threshold_share.txt")).astype(np.float32)
+
+            threshold_value = np.loadtxt(
+                os.path.join(path, "threshold_n2c2.txt")).astype(np.float32)
 
             self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=False)
+                                       requires_grad=True)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
-            torch.nn.init.xavier_uniform(self.weight)
-            # torch.nn.init.normal_(self.weight, mean=0.0, std=0.02)
-            self.threshold = Parameter(torch.tensor(0.25), requires_grad=True)
+            # torch.nn.init.xavier_uniform(self.weight)
+            torch.nn.init.normal_(self.weight, mean=0.0, std=0.02)
+            self.threshold = Parameter(torch.tensor(0.35), requires_grad=True)
 
     def forward(self, features):
         batch_size, fea_size = features.shape
@@ -222,25 +222,50 @@ class CnlpBertForConceptNorm(nn.Module):
             for param in self.bert_mention.parameters():
                 param.requires_grad = False
 
+        
+        
+        #################Similarity ##################
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
-        self.cosine_similarity = CosineLayer(
-            concept_dim=(88150, 768),
-            concept_embeddings_pre=concept_embeddings_pre,
-            path=self.name_or_path)
+
+
+
 
         ###### N2c2 ###########################
 
-        # self.cosine_similarity = CosineLayer(
-        #     concept_dim=(434056, 768),
-        #     concept_embeddings_pre=concept_embeddings_pre,
-        #     path=self.name_or_path)
-        # self.classifier = ClassificationHead(config, num_labels=12)  ###need to change
+        self.cosine_similarity = CosineLayer(
+            concept_dim=(434056, 768),
+            concept_embeddings_pre=concept_embeddings_pre,
+            path=self.name_or_path)
+        
+        
+        # self.concept_st_label = torch.tensor(
+        #     read.read_from_json("data/umls/sg_idx"))
+        # self.classifier = ClassificationHead(config, num_labels=15)  ###need to change
+        
+        
+        ##################### share Classification #######################
+        # self.classifier = ClassificationHead(config, num_labels=434057)  ###need to change
+        
+
 
         ################## Share ####################
-        self.concept_st_label = torch.tensor(
-            read.read_from_json("data/share/umls/st_idx")[:-1])
-        self.classifier = ClassificationHead(config, num_labels=12)
+        
+        # self.cosine_similarity = CosineLayer(
+        #     concept_dim=(88150, 768),
+        #     concept_embeddings_pre=concept_embeddings_pre,
+        #     path=self.name_or_path)
+        
+        
+        
+        # self.concept_st_label = torch.tensor(
+        #     read.read_from_json("data/share/umls/st_idx")[:-1])
+        # self.classifier = ClassificationHead(config, num_labels=12)
 
+
+        ##################### share Classification #######################
+        # self.classifier = ClassificationHead(config, num_labels=88150)  ###need to change
+        
+        
         ######  triplet loss #######
         # self.miner = miners.MultiSimilarityMiner(epsilon=0.1)
         # self.loss = losses.MultiSimilarityLoss(alpha=1, beta=60, base=0.5)
@@ -309,40 +334,40 @@ class CnlpBertForConceptNorm(nn.Module):
             loss_fct = CrossEntropyLoss()
 
             if self.training:
-                # top_n = 16
-                # top_logits_values, top_logits_index = torch.topk(
-                #     task_logits_nocuiless, top_n)
+            #     # top_n = 16
+            #     # top_logits_values, top_logits_index = torch.topk(
+            #     #     task_logits_nocuiless, top_n)
 
-                # top_logits_index = torch.flatten(top_logits_index)
-                # top_logits_values = torch.flatten(top_logits_values)
+            #     # top_logits_index = torch.flatten(top_logits_index)
+            #     # top_logits_values = torch.flatten(top_logits_values)
 
-                # concept_embeddings_norm = torch.index_select(
-                #     concept_embeddings_norm, 0, top_logits_index)
+            #     # concept_embeddings_norm = torch.index_select(
+            #     #     concept_embeddings_norm, 0, top_logits_index)
 
-                # st_labels = torch.index_select(
-                #     self.concept_st_label.to(top_logits_index.device), 0,
-                #     top_logits_index)
+            #     # st_labels = torch.index_select(
+            #     #     self.concept_st_label.to(top_logits_index.device), 0,
+            #     #     top_logits_index)
 
-                # hard_pairs = self.miner(concept_embeddings_norm, st_labels)
-                # sg_task_loss = self.loss(concept_embeddings_norm, st_labels,
-                #                          hard_pairs) * top_n
+            #     # hard_pairs = self.miner(concept_embeddings_norm, st_labels)
+            #     # sg_task_loss = self.loss(concept_embeddings_norm, st_labels,
+            #     #                          hard_pairs) * top_n
 
-                labels_no_cuiless = labels[task_ind][labels[task_ind] != 88150]
-                mention_st_label_no_cuiless = torch.index_select(
-                    self.concept_st_label.to(labels_no_cuiless.device), 0,
-                    labels_no_cuiless)
-                features_norm_no_cuiless = features_norm[
-                    labels[task_ind] != 88150]
+            #     labels_no_cuiless = labels[task_ind][labels[task_ind] != 88150]
+            #     mention_st_label_no_cuiless = torch.index_select(
+            #         self.concept_st_label.to(labels_no_cuiless.device), 0,
+            #         labels_no_cuiless)
+            #     features_norm_no_cuiless = features_norm[
+            #         labels[task_ind] != 88150]
 
-                mention_st_logtis = self.classifier(features_norm_no_cuiless)
+            #     mention_st_logtis = self.classifier(features_norm_no_cuiless)
 
-                mention_st_loss = loss_fct(mention_st_logtis,
-                                           mention_st_label_no_cuiless)
+            #     mention_st_loss = loss1fct(mention_st_logtis,
+                                        #   mention_st_label_no_cuiless)
 
-                embeddings_st_logtis = self.classifier(concept_embeddings_norm)
+                # embeddings_st_logtis = self.classifier(concept_embeddings_norm)
 
-                embeddings_st_loss = loss_fct(
-                    embeddings_st_logtis, self.concept_st_label.to(embeddings_st_logtis.device))
+                # embeddings_st_loss = loss_fct(
+                #     embeddings_st_logtis, self.concept_st_label.to(embeddings_st_logtis.device))
 
                 task_logits_output = self.arcface(task_logits_intermediate,
                                                   labels[task_ind])
@@ -362,8 +387,10 @@ class CnlpBertForConceptNorm(nn.Module):
                 labels_new = labels[task_ind].view(-1)
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
+                
+                # task_loss += 0.2 * embeddings_st_loss
 
-                task_loss += 1.0 * (mention_st_loss + embeddings_st_loss)
+                # task_loss += 1.0 * (embeddings_st_loss + mention_st_loss)
 
                 if loss is None:
                     loss = task_loss
