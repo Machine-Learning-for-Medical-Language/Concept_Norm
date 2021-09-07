@@ -403,9 +403,10 @@ def main():
     # training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
     training_args.evaluation_strategy = IntervalStrategy.EPOCH
     training_args.save_strategy = IntervalStrategy.EPOCH
-    training_args.logging_steps = 1000
-    # training_args.eval_steps = 100
     training_args.logging_strategy = IntervalStrategy.STEPS
+    training_args.logging_steps = 1000
+    # training_args.eval_steps = 1
+    # training_args.save_steps = 1
 
     # elif training_args.do_eval:
     #     logger.info(

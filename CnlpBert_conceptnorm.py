@@ -109,6 +109,7 @@ class CosineLayer(nn.Module):
 
         # self.dropout = nn.Dropout(0.1)
         self.cos = nn.CosineSimilarity(dim=-1)
+        
 
         if concept_embeddings_pre:
             # weights_matrix = np.load(
@@ -129,21 +130,23 @@ class CosineLayer(nn.Module):
 
             self.weight = Parameter(torch.from_numpy(weights_matrix),
                                     requires_grad=True)
+            
             # threshold_value = np.loadtxt(
             #     os.path.join(path, "threshold_share.txt")).astype(np.float32)
 
-            threshold_value = np.loadtxt(
-                os.path.join(path, "threshold_n2c2.txt")).astype(np.float32)
+            # threshold_value = np.loadtxt(
+            #     os.path.join(path, "threshold_n2c2.txt")).astype(np.float32)
 
-            self.threshold = Parameter(torch.tensor(threshold_value),
-                                       requires_grad=True)
+            # self.threshold = Parameter(torch.tensor(threshold_value),
+            #                           requires_grad=True)
+            self.threshold = Parameter(torch.tensor(0.7), requires_grad=True)
         else:
 
             self.weight = Parameter(torch.rand(concept_dim),
                                     requires_grad=True)
-            # torch.nn.init.xavier_uniform(self.weight)
-            torch.nn.init.normal_(self.weight, mean=0.0, std=0.02)
-            self.threshold = Parameter(torch.tensor(0.35), requires_grad=True)
+            torch.nn.init.xavier_uniform(self.weight)
+            # torch.nn.init.normal_(self.weight, mean=0.0, std=0.1)
+            self.threshold = Parameter(torch.tensor(0.7), requires_grad=True)
 
     def forward(self, features):
         batch_size, fea_size = features.shape
@@ -157,6 +160,7 @@ class CosineLayer(nn.Module):
         cui_less_score = torch.full((batch_size, 1), 1).to(
             features.device) * self.threshold.to(features.device)
         similarity_score = torch.cat((sim_mt, cui_less_score), 1)
+        # similarity_score = sim_mt
         return similarity_score, sim_mt, weight_norm, features_norm
 
 
@@ -228,8 +232,6 @@ class CnlpBertForConceptNorm(nn.Module):
         self.arcface = ArcMarginProduct(s=scale, m=margin, easy_margin=True)
 
 
-
-
         ###### N2c2 ###########################
 
         self.cosine_similarity = CosineLayer(
@@ -275,7 +277,14 @@ class CnlpBertForConceptNorm(nn.Module):
         # pretrained_weights = torch.load(os.path.join(self.name_or_path,
         #                                 "pytorch_model.bin"))
 
-        # self.bert_mention.load_state_dict(pretrained_weights)
+
+        # # 1. load keys that are not from previous models
+        # threhold_dict = {k:v for k,v in self.state_dict().items() if 'threshold' in k}
+        # pretrained_weights.update(threhold_dict)
+        
+        
+        # self.load_state_dict(pretrained_weights)
+        # self.cosine_similarity.threshold = Parameter(torch.tensor(0.65), requires_grad=False)
 
         # Are we operating as a sconcepts_presentation
 
@@ -330,7 +339,7 @@ class CnlpBertForConceptNorm(nn.Module):
             # logits.append(task_logits_intermediate)
 
             embeddings_st_loss = 0
-            mention_st_loss = 0
+            # mention_st_loss = 0
             loss_fct = CrossEntropyLoss()
 
             if self.training:
@@ -364,10 +373,10 @@ class CnlpBertForConceptNorm(nn.Module):
             #     mention_st_loss = loss1fct(mention_st_logtis,
                                         #   mention_st_label_no_cuiless)
 
-                # embeddings_st_logtis = self.classifier(concept_embeddings_norm)
+                embeddings_st_logtis = self.classifier(concept_embeddings_norm)
 
-                # embeddings_st_loss = loss_fct(
-                #     embeddings_st_logtis, self.concept_st_label.to(embeddings_st_logtis.device))
+                embeddings_st_loss = loss_fct(
+                    embeddings_st_logtis, self.concept_st_label.to(embeddings_st_logtis.device))
 
                 task_logits_output = self.arcface(task_logits_intermediate,
                                                   labels[task_ind])
@@ -388,7 +397,7 @@ class CnlpBertForConceptNorm(nn.Module):
 
                 task_loss = loss_fct(logits[task_ind], labels_new)
                 
-                # task_loss += 0.2 * embeddings_st_loss
+                task_loss += 0.5 * embeddings_st_loss
 
                 # task_loss += 1.0 * (embeddings_st_loss + mention_st_loss)
 
